@@ -6,12 +6,13 @@
 #include <pcl/point_types.h>
 
 ros::Publisher pub;
+// How to avoid hard-coding a topic name?
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   // Create a container for the data.
   sensor_msgs::PointCloud2 output;
 
-  // Do data processing here...
+  /* Do data processing here...*/
   output = *input; // modify input
 
   // Publish the data.
