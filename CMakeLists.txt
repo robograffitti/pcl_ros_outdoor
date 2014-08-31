@@ -105,6 +105,7 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(my_pcl_tutorial_node src/my_pcl_tutorial_node.cpp)
+add_executable(my_pcl_tutorial_node_voxel src/my_pcl_tutorial_node_voxel.cpp)
 # add_executable(example src/example.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -113,6 +114,7 @@ add_executable(my_pcl_tutorial_node src/my_pcl_tutorial_node.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(my_pcl_tutorial_node ${catkin_LIBRARIES})
+target_link_libraries(my_pcl_tutorial_node_voxel ${catkin_LIBRARIES})
 # target_link_libraries(example ${catkin_LIBRARIES})
 
 #############
