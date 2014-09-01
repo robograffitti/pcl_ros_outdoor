@@ -21,7 +21,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   /* Perform the actual filtering */
   pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
   sor.setInputCloud(cloudPtr);
-  sor.setLeafSize(0.1, 0.1, 0.1);
+  sor.setLeafSize(0.05f, 0.05f, 0.05f);
   sor.filter(cloud_filtered);
 
   // Convert to ROS data type
