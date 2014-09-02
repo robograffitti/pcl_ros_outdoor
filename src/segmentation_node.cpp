@@ -13,6 +13,7 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 
+ros::Publisher pub_v; // voxel publisher
 ros::Publisher pub_p;
 ros::Publisher pub_f;
 // How to avoid hard-coding a topic name?
@@ -25,13 +26,27 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_templated (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_p (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl_conversions::toPCL(*input, * cloud);
+  pcl_conversions::toPCL(*input, *cloud);
+
+  // StatOutlierRemoval
+  // How to use both of SOR and VG?
+  /* pcl::StatisticalOutlierRemoval<pcl::PCLPointCloud2> sor_0;
+  sor_0.setInputCloud(cloudPtr);
+  sor_0.setMeanK(50);
+  sor_0.setStddevMulThresh(1.0);
+  sor_0.filter(cloud_filtered); // fill in an empty variable */
+
 
   // Downsampling
   pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
   sor.setInputCloud(cloudPtr);
   sor.setLeafSize(0.02f, 0.02f, 0.02f);
   sor.filter(cloud_filtered);
+
+  // Publishing voxel
+  sensor_msgs::PointCloud2 output_v;
+  pcl_conversions::fromPCL(cloud_filtered, output_v);
+  pub_v.publish(output_v);
 
   // Convert
   pcl::fromPCLPointCloud2(cloud_filtered, *cloud_templated);
@@ -115,6 +130,7 @@ int main (int argc, char** argv) {
   // A node has both of publisheres and subscribers.
   pub_p = nh.advertise<sensor_msgs::PointCloud2>("output_p", 1);
   pub_f = nh.advertise<sensor_msgs::PointCloud2>("output_f", 1);
+  pub_v = nh.advertise<sensor_msgs::PointCloud2>("output_v", 1);
   // pub = nh.advertise<pcl_msgs::ModelCoefficients>("output", 1);
   // pub = nh.advertise<pcl_msgs::PointIndices>("output", 1);
   // Spin
