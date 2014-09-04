@@ -9,6 +9,7 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/segmentation/extract_clusters.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
@@ -17,6 +18,7 @@ ros::Publisher pub_v; // voxel publisher
 ros::Publisher pub_p;
 ros::Publisher pub_f;
 // How to avoid hard-coding a topic name?
+ros::Publisher pub_c;
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   // Container for original & filtered data
@@ -131,6 +133,7 @@ int main (int argc, char** argv) {
   pub_p = nh.advertise<sensor_msgs::PointCloud2>("output_p", 1);
   pub_f = nh.advertise<sensor_msgs::PointCloud2>("output_f", 1);
   pub_v = nh.advertise<sensor_msgs::PointCloud2>("output_v", 1);
+  pub_c = nh.advertise<sensor_msgs::PointCloud2>("output_c", 1);
   // pub = nh.advertise<pcl_msgs::ModelCoefficients>("output", 1);
   // pub = nh.advertise<pcl_msgs::PointIndices>("output", 1);
   // Spin
