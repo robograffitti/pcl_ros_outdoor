@@ -6,19 +6,19 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/kdtree/kdtree.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
-#include <pcl/filters/extract_indices.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
 
 ros::Publisher pub_v; // voxel publisher
 ros::Publisher pub_p;
 ros::Publisher pub_f;
 // How to avoid hard-coding a topic name?
-ros::Publisher pub_c;
+ros::Publisher pub_c; // publish cluster
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   // Container for original & filtered data
@@ -38,7 +38,6 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   sor_0.setStddevMulThresh(1.0);
   sor_0.filter(cloud_filtered); // fill in an empty variable */
 
-
   // Downsampling
   pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
   sor.setInputCloud(cloudPtr);
@@ -51,15 +50,14 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   pub_v.publish(output_v);
 
   // Convert
-  pcl::fromPCLPointCloud2(cloud_filtered, *cloud_templated);
+  pcl::fromPCLPointCloud2(cloud_filtered, *cloud_templated); // unused
 
   /* Perform the actual filtering */
-  pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
-  pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
   // Create the segmentation object
   pcl::SACSegmentation<pcl::PointXYZ> seg;
-  // Optional
-  seg.setOptimizeCoefficients (true);
+  pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
+  pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
+  seg.setOptimizeCoefficients (true); // Optional
   // Mandatory
   seg.setModelType (pcl::SACMODEL_PLANE);
   seg.setMethodType (pcl::SAC_RANSAC);
@@ -67,7 +65,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   seg.setDistanceThreshold (0.02);
 
   /* Filtering Object: Extraction */
-  pcl::ExtractIndices<pcl::PointXYZ> extract;
+  // pcl::ExtractIndices<pcl::PointXYZ> extract;
 
   int i = 0, nr_points = (int) cloud_templated->points.size ();
   // While 30% of the original cloud is still there
@@ -83,16 +81,52 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
         }
 
       // Extract the inliers
+      pcl::ExtractIndices<pcl::PointXYZ> extract;
       extract.setInputCloud (cloud_templated);
       extract.setIndices (inliers);
       extract.setNegative (false);
+
+      // Get the points associated with the planar surface
       extract.filter (*cloud_p);
 
-      // Create the filtering object
+      // Remove the planar inliers, extract the rest
       extract.setNegative (true);
       extract.filter (*cloud_f);
-      cloud_templated.swap (cloud_f);
+      *cloud_templated = *cloud_f;
+      // cloud_templated.swap (cloud_f);
       i++;
+    }
+
+  // Creating the KdTree object for the search method of the extraction
+  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+  tree->setInputCloud (cloud_templated);
+
+  std::vector<pcl::PointIndices> cluster_indices;
+  pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+  ec.setClusterTolerance (0.02); // 0.02 = 2ch
+  ec.setMinClusterSize (100); // parameter
+  ec.setMaxClusterSize (25000); // parameter
+  ec.setSearchMethod (tree);
+  ec.setInputCloud (cloud_templated);
+  ec.extract (cluster_indices);
+
+  int j = 0;
+  for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin ();
+       it != cluster_indices.end (); ++it) {
+      pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
+      for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
+        cloud_cluster->points.push_back (cloud_templated->points[*pit]); //*
+      cloud_cluster->width = cloud_cluster->points.size ();
+      cloud_cluster->height = 1;
+      cloud_cluster->is_dense = true;
+
+      // Convert data type and publish, but not sure which cluster is published!
+      pcl::PCLPointCloud2 out_c;
+      sensor_msgs::PointCloud2 output_c;
+      pcl::toPCLPointCloud2(*cloud_cluster, out_c);
+      pcl_conversions::fromPCL(out_c, output_c);
+      pub_p.publish(output_c);
+      j++;
     }
 
   // Convert to ROS data type
@@ -105,7 +139,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   pcl_conversions::fromPCL(out_p, output_p);
   pcl_conversions::fromPCL(out_f, output_f);
   pub_p.publish(output_p);
-  pub_f.publish(output_f);
+  pub_f.publish(output_f); 
   // output = *input; // only for debuging
   // ROS_INFO_STREAM("cloud_width:" << output.width);
   // pcl_conversions::fromPCL(cloud_filtered, output);
@@ -133,7 +167,7 @@ int main (int argc, char** argv) {
   pub_p = nh.advertise<sensor_msgs::PointCloud2>("output_p", 1);
   pub_f = nh.advertise<sensor_msgs::PointCloud2>("output_f", 1);
   pub_v = nh.advertise<sensor_msgs::PointCloud2>("output_v", 1);
-  pub_c = nh.advertise<sensor_msgs::PointCloud2>("output_c", 1);
+  pub_c = nh.advertise<sensor_msgs::PointCloud2>("cluster_c", 1);
   // pub = nh.advertise<pcl_msgs::ModelCoefficients>("output", 1);
   // pub = nh.advertise<pcl_msgs::PointIndices>("output", 1);
   // Spin
