@@ -1,0 +1,15 @@
+#!/bin/bash
+# $1=file.pcd, $2=/frame
+echo "$# arguments."
+if [ $# -eq 2 ]; then # for improving readability
+    rosrun pcl_ros pcd_to_pointcloud $1 _frame_id:=$2
+elif [ $# -eq 1 ]; then # Conditional Eq: [ num1 -option num2 ]
+    rosrun pcl_ros pcd_to_pointcloud $1 _frame_id:=/odom
+elif [ $# -eq 0 ]; then
+    echo "You need 2 arguments."
+else # 3 or more arguments
+    echo "Only first 2 arguments are evaluated."
+    rosrun pcl_ros pcd_to_pointcloud $1 _frame_id:=$2
+fi
+
+exit 0
