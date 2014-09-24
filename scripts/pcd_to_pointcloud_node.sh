@@ -21,4 +21,6 @@ fi
 PCD_FILE="tomato_si.pcd"
 FRAME_ID="/odom"
 INTERVAL=1.000
+
+# rosrun pcl_ros pcd_to_pointcloud <file.pcd> [ <interval> ]
 rosrun pcl_ros pcd_to_pointcloud $PCD_FILE _frame_id:=$FRAME_ID $INTERVAL
