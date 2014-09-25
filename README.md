@@ -13,3 +13,13 @@ catkin_create_pkg my_pcl_tutorial pcl_conversions pcl_ros roscpp sensor_msgs
 4. Modify the CMakeLists.txt
 add_executable(example src/example.cpp)
 target_link_libraries(example ${catkin_LIBRARIES})
+
+Note: git setup
+===============
+git config --global user.name "your github username"
+git config --get user.name
+> your github username
+
+git config --global user.email "your@github.email"
+git config --get user.email
+> your@github.email
