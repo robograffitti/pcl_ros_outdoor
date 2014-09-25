@@ -18,7 +18,7 @@ fi
 #exit 0
 #__COMMENT_OUT__
 
-PCD_FILE="tomato_si.pcd"
+PCD_FILE="tomato_si_000.pcd"
 FRAME_ID="/odom"
 INTERVAL=1.000
 
