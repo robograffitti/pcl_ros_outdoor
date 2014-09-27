@@ -2,6 +2,11 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <eigen_conversions/eigen_msg.h>
+#include <geometry_msgs/Pose.h> // Eigen visualization
+#include <geometry_msgs/PoseStamped.h> // Eigen visualization
+#include <geometry_msgs/Point.h>
+#include <visualization_msgs/Marker.h>
 // PCL specific includes
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
@@ -21,6 +26,7 @@ ros::Publisher pub_p;
 ros::Publisher pub_f;
 // How to avoid hard-coding a topic name?
 ros::Publisher pub_c; // publish cluster
+ros::Publisher pub_m;
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   std::cerr << "in cloud_cb" << std::endl;
@@ -68,33 +74,67 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   //seg.setDistanceThreshold (0.02);
   seg.setDistanceThreshold (0.05); //!!!
 
-  /* test */
+  /* Segmentation coded by nagahama */
   seg.setInputCloud (cloud_templated);
   seg.segment (*inliers, *coefficients);
-  // nagahama
-  pcl::PCLPointCloud2 out_c;
+  pcl::PCLPointCloud2 out_p;
   //pcl::PointCloud<pcl::PointXYZ> out_c;
-  sensor_msgs::PointCloud2 output_c;
+  sensor_msgs::PointCloud2 output_p;
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
-  for (std::vector<int>::const_iterator pit = inliers->indices.begin (); pit != inliers->indices.end (); pit++)
+  for (std::vector<int>::const_iterator pit = inliers->indices.begin ();
+       pit != inliers->indices.end (); pit++)
     cloud_cluster->points.push_back (cloud_templated->points[*pit]); //*
   cloud_cluster->width = cloud_cluster->points.size ();
   cloud_cluster->height = 1;
-  //pcl::toPCLPointCloud2(*inliers, out_c);
-  pcl::toPCLPointCloud2(*cloud_cluster, out_c);
-  pcl_conversions::fromPCL(out_c, output_c);
-  output_c.header.frame_id = "odom";
-  output_c.header.stamp = ros::Time::now();
-  pub_p.publish(output_c);
-  /* test */
+  //pcl::toPCLPointCloud2(*inliers, out_p);
+  pcl::toPCLPointCloud2(*cloud_cluster, out_p);
+  pcl_conversions::fromPCL(out_p, output_p);
+  output_p.header.frame_id = "odom";
+  output_p.header.stamp = ros::Time::now();
+  pub_p.publish(output_p); // 
+  /* Segmentation coded by nagahama */
 
-  /* PCA */
+  /* PCA coded by nagahama */
   pcl::PCA<pcl::PointXYZ> pca;
   pca.setInputCloud(cloud_cluster);
   Eigen::Matrix3f eigen_vectors = pca.getEigenVectors();//<<
   std::cerr << eigen_vectors(0,0) << ", " << eigen_vectors(0,1) << ", " << eigen_vectors(0,2) << std::endl;
   //std::cerr << eigen_vectors(1,0) << ", " << eigen_vectors(1,1) << ", " << eigen_vectors(1,2) << std::endl;
-  /* PCA */
+  /* PCA coded by nagahama */
+
+  /* PCA Visualization */
+  // geometry_msgs::Pose pose;
+  // tf::poseEigenToMsg(pca.getEigenVectors, pose);
+  visualization_msgs::Marker points;
+  points.header.frame_id = "/odom";
+  points.header.stamp = ros::Time::now();
+  points.ns = "points";
+  points.action = visualization_msgs::Marker::ADD;
+  points.pose.orientation.w = 1.0;
+
+  points.id = 0;
+  points.type = visualization_msgs::Marker::ARROW;
+  points.scale.x = 0.1;
+  points.scale.y = 0.1;
+  points.scale.z = 0.1;
+  // Points are green
+  points.color.g = 1.0f;
+  points.color.r = 0.0f;
+  points.color.b = 0.0f;
+  points.color.a = 1.0;
+
+  geometry_msgs::Point p_0, p_1;
+  p_0.x = 0;
+  p_0.y = 0;
+  p_0.z = 0;
+  p_1.x = eigen_vectors(0,0);
+  p_1.y = eigen_vectors(0,1);
+  p_1.z = eigen_vectors(0,2);
+  points.points.push_back(p_0);
+  points.points.push_back(p_1);
+
+  pub_m.publish(points);
+  /* PCA Visualizaton */
 
   /* Filtering Object: Extraction */
   // pcl::ExtractIndices<pcl::PointXYZ> extract;
@@ -102,8 +142,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   int i = 0, nr_points = (int) cloud_templated->points.size ();
   // While 30% of the original cloud is still there
   while (cloud_templated->points.size () > 0.3 * nr_points)
-    {
-      // Segment the largest planar component from the remaining cloud
+    {      // Segment the largest planar component from the remaining cloud
       seg.setInputCloud (cloud_templated);
       seg.segment (*inliers, *coefficients);
       if (inliers->indices.size () == 0)
@@ -170,16 +209,16 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
 
 
   // Convert to ROS data type
-  pcl::PCLPointCloud2 out_p;
-  pcl::PCLPointCloud2 out_f;
-  sensor_msgs::PointCloud2 output_p;
-  sensor_msgs::PointCloud2 output_f;
-  pcl::toPCLPointCloud2(*cloud_p, out_p);
-  pcl::toPCLPointCloud2(*cloud_f, out_f);
-  pcl_conversions::fromPCL(out_p, output_p);
-  pcl_conversions::fromPCL(out_f, output_f);
+  // pcl::PCLPointCloud2 out_p;
+  // pcl::PCLPointCloud2 out_f;
+  // sensor_msgs::PointCloud2 output_p;
+  // sensor_msgs::PointCloud2 output_f;
+  // pcl::toPCLPointCloud2(*cloud_p, out_p);
+  // pcl::toPCLPointCloud2(*cloud_f, out_f);
+  // pcl_conversions::fromPCL(out_p, output_p);
+  // pcl_conversions::fromPCL(out_f, output_f);
   //pub_p.publish(output_p);
-  pub_f.publish(output_f); 
+  // pub_f.publish(output_f); 
   // output = *input; // only for debuging
   // ROS_INFO_STREAM("cloud_width:" << output.width);
   // pcl_conversions::fromPCL(cloud_filtered, output);
@@ -207,11 +246,13 @@ int main (int argc, char** argv) {
   // Create a ROS publisher for the output point cloud
   // A node has both of publisheres and subscribers.
   pub_p = nh.advertise<sensor_msgs::PointCloud2>("output_p", 1);
-  pub_f = nh.advertise<sensor_msgs::PointCloud2>("output_f", 1);
+  // pub_f = nh.advertise<sensor_msgs::PointCloud2>("output_f", 1);
   pub_v = nh.advertise<sensor_msgs::PointCloud2>("output_v", 1);
-  pub_c = nh.advertise<sensor_msgs::PointCloud2>("cluster_c", 1);
+  // pub_c = nh.advertise<sensor_msgs::PointCloud2>("cluster_c", 1);
   // pub = nh.advertise<pcl_msgs::ModelCoefficients>("output", 1);
   // pub = nh.advertise<pcl_msgs::PointIndices>("output", 1);
+  pub_m = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
+
   // Spin
   ros::spin();
 }
