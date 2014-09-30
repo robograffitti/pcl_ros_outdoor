@@ -28,7 +28,8 @@ ros::Publisher pub_r; // rotated point cloud
 ros::Publisher pub_red;
 // How to avoid hard-coding a topic name?
 ros::Publisher pub_c; // publish cluster
-ros::Publisher pub_m;
+ros::Publisher pub_m; // arrow
+ros::Publisher pub_t; // text
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   std::cerr << "in cloud_cb" << std::endl;
@@ -167,9 +168,19 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   /* Reduce range of cloud_xyz_rot */
 
   /* Automatic Measurement */
+  // 0-a. stitch measurement: -0.5 < z < -0.3
+  // 0-b. min width measurement: 0.3 < z < 5m
+  // 1. iterate
+  // 2. pick point if y < 0
+  // 3. compare point with all points if 0 < y
+  // 4. pick point-pare recording shortest distance
+  // 5. compare the point with previous point
+  // 6. update min
+  // 7. display value in text in between 2 points
+
   double width_min = 2.0; // initialize with a constant
-  double width_stitch;
-  pcl::PointXYZ p1, p2;
+  double width_stitch = 4.0;
+  pcl::PointXYZ p_s, p_e, p_m;
   for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr_1 =
          cloud_reduced_xyz->points.begin(); itr_1 != cloud_reduced_xyz->points.end(); ++itr_1) {
     if (itr_1->y < 0) {
@@ -182,21 +193,55 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
                      + pow(fabs(itr_1->z - itr_2->z), 2));
           if (tmp <= width_min) {
             width_min = tmp;
+            p_m.x = itr_1->x;
+            p_m.y = itr_1->y + sqrt(pow(fabs(itr_1->y - itr_2->y), 2)) / 2;
+            p_m.z = itr_1->z;
+            p_s.x = itr_1->x; p_s.y = itr_1->y; p_s.z = itr_1->z;
+            p_e.x = itr_2->x; p_e.y = itr_2->y; p_e.z = itr_2->z;
+          } else if (-0.3125 < itr_1->z && itr_1->z < 0.325 && tmp <= width_stitch) {
+            width_stitch = tmp;
           }
         }
       }
     }
-  } std::cerr << "width_min = " << width_min << std::endl;
+  }
+  std::cerr << "width_min = " << width_min << std::endl
+            << "width_stitch = " << width_stitch << std::endl
+            <<", point inbetween = "  << std::endl
+            << "(" << p_s.x << ", " << p_s.y << ", " << p_s.z << ")" << std::endl
+            << "(" << p_e.x << ", " << p_e.y << ", " << p_e.z << ")" << std::endl
+            << "(" << p_m.x << ", " << p_m.y << ", " << p_m.z << ")" << std::endl;
 
-  // 0-a. stitch measurement: -0.5 < z < -0.3
-  // 0-b. min width measurement: 0.3 < z < 5m
-  // 1. iterate
-  // 2. pick point if y < 0
-  // 3. compare point with all points if 0 < y
-  // 4. pick point-pare recording shortest distance
-  // 5. compare the point with previous point
-  // 6. update min
-  // 7. display value in text in between 2 points
+  // Display the value
+  visualization_msgs::Marker texts; // TEXT_VIEW_FACING
+  texts.header.frame_id = "/odom";
+  texts.header.stamp = ros::Time::now();
+  texts.ns = "texts";
+  texts.action = visualization_msgs::Marker::ADD;
+  texts.id = 1;
+  texts.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+  texts.pose.position.x = p_m.x;
+  texts.pose.position.y = p_m.y;
+  texts.pose.position.z = -0.500;
+  texts.pose.orientation.x = 0.0;
+  texts.pose.orientation.y = 0.0;
+  texts.pose.orientation.z = 0.0;
+  texts.pose.orientation.w = 1.0;
+  texts.scale.x = 0.2;
+  texts.scale.y = 0.2;
+  texts.scale.z = 0.2;
+  texts.color.r = 0.0f;
+  texts.color.g = 1.0f;
+  texts.color.b = 0.0f;
+  texts.color.a = 1.0;
+  std::ostringstream strs; strs << width_stitch;
+  std::string str = strs.str();
+  texts.text = str;
+  pub_t.publish(texts);
+
+  // geometry_msgs::Point p_stitch, p_min;
+  // p_stitch.x = 0; p_stitch.y = 0; p_stitch.z = 0;
+
   /* Automatic Measurement */
 
   /* PCA Visualization */
@@ -221,12 +266,20 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   points.color.a = 1.0;
 
   geometry_msgs::Point p_0, p_1;
-  p_0.x = 0;
-  p_0.y = 0;
-  p_0.z = 0;
-  p_1.x = eigen_vectors(0,0);
-  p_1.y = eigen_vectors(0,1);
-  p_1.z = eigen_vectors(0,2);
+  // p_0.x = 0;
+  // p_0.y = 0;
+  // p_0.z = 0;
+  // p_1.x = eigen_vectors(0,0);
+  // p_1.y = eigen_vectors(0,1);
+  // p_1.z = eigen_vectors(0,2);
+
+  p_0.x = p_s.x;
+  p_0.y = p_s.y;
+  p_0.z = p_s.z;
+  p_1.x = p_e.x;
+  p_1.y = p_e.y;
+  p_1.z = p_e.z;
+
   points.points.push_back(p_0);
   points.points.push_back(p_1);
 
@@ -351,7 +404,7 @@ int main (int argc, char** argv) {
   // pub = nh.advertise<pcl_msgs::ModelCoefficients>("output", 1);
   // pub = nh.advertise<pcl_msgs::PointIndices>("output", 1);
   pub_m = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
-
+  pub_t = nh.advertise<visualization_msgs::Marker>("texts", 1, 0);
   // Spin
   ros::spin();
 }
