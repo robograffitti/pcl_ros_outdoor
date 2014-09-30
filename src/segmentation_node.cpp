@@ -167,17 +167,27 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   /* Reduce range of cloud_xyz_rot */
 
   /* Automatic Measurement */
+  double width_min = 2.0; // initialize with a constant
+  double width_stitch;
+  pcl::PointXYZ p1, p2;
   for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr_1 =
          cloud_reduced_xyz->points.begin(); itr_1 != cloud_reduced_xyz->points.end(); ++itr_1) {
     if (itr_1->y < 0) {
       for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr_2 =
              cloud_reduced_xyz->points.begin(); itr_2 != cloud_reduced_xyz->points.end(); ++itr_2) {
         if (0 <= itr_2->y) {
-          
+          double tmp;
+          tmp = sqrt(pow(fabs(itr_1->x - itr_2->x), 2)
+                     + pow(fabs(itr_1->y - itr_2->y), 2)
+                     + pow(fabs(itr_1->z - itr_2->z), 2));
+          if (tmp <= width_min) {
+            width_min = tmp;
+          }
         }
       }
     }
-  }
+  } std::cerr << "width_min = " << width_min << std::endl;
+
   // 0-a. stitch measurement: -0.5 < z < -0.3
   // 0-b. min width measurement: 0.3 < z < 5m
   // 1. iterate
