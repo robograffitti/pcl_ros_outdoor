@@ -24,6 +24,8 @@
 ros::Publisher pub_v; // voxel publisher
 ros::Publisher pub_p;
 ros::Publisher pub_f;
+ros::Publisher pub_r; // rotated point cloud
+ros::Publisher pub_red;
 // How to avoid hard-coding a topic name?
 ros::Publisher pub_c; // publish cluster
 ros::Publisher pub_m;
@@ -98,9 +100,94 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   pcl::PCA<pcl::PointXYZ> pca;
   pca.setInputCloud(cloud_cluster);
   Eigen::Matrix3f eigen_vectors = pca.getEigenVectors();//<<
-  std::cerr << eigen_vectors(0,0) << ", " << eigen_vectors(0,1) << ", " << eigen_vectors(0,2) << std::endl;
+  // std::cerr << eigen_vectors(0,0) << ", " << eigen_vectors(0,1) << ", " << eigen_vectors(0,2) << std::endl;
   //std::cerr << eigen_vectors(1,0) << ", " << eigen_vectors(1,1) << ", " << eigen_vectors(1,2) << std::endl;
   /* PCA coded by nagahama */
+
+  /* Point Cloud Rotation  */
+  eigen_vectors(0,2) = 0;
+  double norm = pow((eigen_vectors(0,0) * eigen_vectors(0,0) + eigen_vectors(0,1) * eigen_vectors(0,1)), 0.5);
+  double nx = eigen_vectors(0,0) / norm;
+  double ny = eigen_vectors(0,1) / norm;
+
+  Eigen::Matrix4d rot_z; // = new Eigen::Matrix3d; // rotation inversed!
+  rot_z(0,0) = nx; rot_z(0,1) = ny; rot_z(0,2) = 0; rot_z(0,3) = 0; 
+  rot_z(1,0) = -ny; rot_z(1,1) = nx; rot_z(1,2) = 0; rot_z(1,3) = 0; 
+  rot_z(2,0) = 0; rot_z(2,1) = 0; rot_z(2,2) = 1; rot_z(2,3) = 0; 
+  rot_z(3,0) = 0; rot_z(3,1) = 0; rot_z(3,2) = 0; rot_z(3,3) = 1;
+  // Error output
+  std::cerr << rot_z(0,0) << ", " << rot_z(0,1) << ", " << rot_z(0,2) << ", " << rot_z(0,3) << std::endl;
+  std::cerr << rot_z(1,0) << ", " << rot_z(1,1) << ", " << rot_z(1,2) << ", " << rot_z(1,3) << std::endl;
+  std::cerr << rot_z(2,0) << ", " << rot_z(2,1) << ", " << rot_z(2,2) << ", " << rot_z(2,3) << std::endl;
+  std::cerr << rot_z(3,0) << ", " << rot_z(3,1) << ", " << rot_z(3,2) << ", " << rot_z(3,3) << std::endl;
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::fromPCLPointCloud2(*cloudPtr, *cloud_xyz); // conversion
+
+  // Transform
+  pcl::transformPointCloud(*cloud_xyz, *cloud_xyz_rot, rot_z);
+
+  // conversion for cloud_rotated
+  pcl::PCLPointCloud2 cloud_rotated;
+  sensor_msgs::PointCloud2 output_r;
+  pcl::toPCLPointCloud2(*cloud_xyz_rot, cloud_rotated);
+  pcl_conversions::fromPCL(cloud_rotated, output_r);
+  pub_r.publish(output_r);
+  /* Point Cloud Rotation */
+
+  /* Reduce range of cloud_xyz_rot */
+  std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > cloud_xyz_rot_vector;
+  cloud_xyz_rot_vector = cloud_xyz_rot->points;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
+
+  for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr =
+         cloud_xyz_rot_vector.begin(); itr != cloud_xyz_rot_vector.end(); ++itr) {
+    // pcl::PointXYZ has members, x, y, and z
+    if (1.50 < itr->x && itr->x < 1.675) { // 1.5~1.75 or 1.75~2.00
+      if (-0.675 < itr->y && itr->y < 0.675) {
+        if (-0.3125 < itr->z && itr->z < 5.00) {
+          pcl::PointXYZ p;
+          p.x = itr->x; p.y = itr->y; p.z = itr->z;
+          cloud_reduced_xyz->points.push_back(p);
+        }
+      }
+    }
+  }
+
+  // Conversion for visualization
+  pcl::PCLPointCloud2 cloud_reduced;
+  pcl::toPCLPointCloud2(*cloud_reduced_xyz, cloud_reduced);
+  sensor_msgs::PointCloud2 cloud_red;
+  pcl_conversions::fromPCL(cloud_reduced, cloud_red);
+  cloud_red.header.frame_id = "odom";
+  cloud_red.header.stamp = ros::Time::now();
+  pub_red.publish(cloud_red);
+
+  /* Reduce range of cloud_xyz_rot */
+
+  /* Automatic Measurement */
+  for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr_1 =
+         cloud_reduced_xyz->points.begin(); itr_1 != cloud_reduced_xyz->points.end(); ++itr_1) {
+    if (itr_1->y < 0) {
+      for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr_2 =
+             cloud_reduced_xyz->points.begin(); itr_2 != cloud_reduced_xyz->points.end(); ++itr_2) {
+        if (0 <= itr_2->y) {
+          
+        }
+      }
+    }
+  }
+  // 0-a. stitch measurement: -0.5 < z < -0.3
+  // 0-b. min width measurement: 0.3 < z < 5m
+  // 1. iterate
+  // 2. pick point if y < 0
+  // 3. compare point with all points if 0 < y
+  // 4. pick point-pare recording shortest distance
+  // 5. compare the point with previous point
+  // 6. update min
+  // 7. display value in text in between 2 points
+  /* Automatic Measurement */
 
   /* PCA Visualization */
   // geometry_msgs::Pose pose;
@@ -248,6 +335,8 @@ int main (int argc, char** argv) {
   pub_p = nh.advertise<sensor_msgs::PointCloud2>("output_p", 1);
   // pub_f = nh.advertise<sensor_msgs::PointCloud2>("output_f", 1);
   pub_v = nh.advertise<sensor_msgs::PointCloud2>("output_v", 1);
+  pub_r = nh.advertise<sensor_msgs::PointCloud2>("cloud_rot", 1);
+  pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_red", 1);
   // pub_c = nh.advertise<sensor_msgs::PointCloud2>("cluster_c", 1);
   // pub = nh.advertise<pcl_msgs::ModelCoefficients>("output", 1);
   // pub = nh.advertise<pcl_msgs::PointIndices>("output", 1);
