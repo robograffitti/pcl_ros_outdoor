@@ -2,11 +2,14 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <sensor_msgs/PointCloud2.h>
+
+// Eigen visualization
 #include <eigen_conversions/eigen_msg.h>
-#include <geometry_msgs/Pose.h> // Eigen visualization
-#include <geometry_msgs/PoseStamped.h> // Eigen visualization
+// #include <geometry_msgs/Pose.h>
+// #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Point.h>
 #include <visualization_msgs/Marker.h>
+
 // PCL specific includes
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
