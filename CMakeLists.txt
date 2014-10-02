@@ -167,4 +167,3 @@ target_link_libraries(segmentation_node ${catkin_LIBRARIES})
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-
