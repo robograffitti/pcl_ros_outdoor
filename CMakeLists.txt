@@ -105,17 +105,17 @@ include_directories(
 # )
 
 ## Declare a cpp executable
-add_executable(my_pcl_tutorial_node src/my_pcl_tutorial_node.cpp)
+add_executable(pcl_skeleton src/pcl_skeleton.cpp)
 add_executable(voxel_node src/voxel_node.cpp)
 add_executable(segmentation_node src/segmentation_node.cpp)
 # add_executable(example src/example.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(my_pcl_tutorial_node pcl_ros_outdoor_generate_messages_cpp)
+# add_dependencies(pcl_skeleton pcl_ros_outdoor_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(my_pcl_tutorial_node ${catkin_LIBRARIES})
+target_link_libraries(pcl_skeleton ${catkin_LIBRARIES})
 target_link_libraries(voxel_node ${catkin_LIBRARIES})
 target_link_libraries(segmentation_node ${catkin_LIBRARIES})
 # target_link_libraries(example ${catkin_LIBRARIES})
@@ -135,7 +135,7 @@ target_link_libraries(segmentation_node ${catkin_LIBRARIES})
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS pcl_ros_outdoor my_pcl_tutorial_node
+# install(TARGETS pcl_ros_outdoor pcl_skeleton
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
