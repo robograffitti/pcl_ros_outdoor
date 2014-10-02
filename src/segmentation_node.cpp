@@ -30,6 +30,7 @@ ros::Publisher pub_red;
 ros::Publisher pub_c; // publish cluster
 ros::Publisher pub_m; // arrow
 ros::Publisher pub_t; // text
+ros::Publisher pub_marker;
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   std::cerr << "in cloud_cb" << std::endl;
@@ -137,50 +138,48 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   pub_r.publish(output_r);
   /* Point Cloud Rotation */
 
-  /* Reduce range of cloud_xyz_rot */
+  /* Visualize center line */
+  visualization_msgs::Marker line_strip;
+  line_strip.header.frame_id = "/odom";
+  line_strip.header.stamp = ros::Time::now();
+  line_strip.ns = "center_line";
+  line_strip.action = visualization_msgs::Marker::ADD;
+  line_strip.pose.orientation.w = 1.0;
+  line_strip.id = 1;
+
+  line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+  line_strip.scale.x = 0.05;
+  line_strip.color.r = 1.0f;
+  line_strip.color.g = 0.0f;
+  line_strip.color.b = 0.0f;
+  line_strip.color.a = 1.0;
+
+  // line_strip.points.pushback();
+
   std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > cloud_xyz_rot_vector;
   cloud_xyz_rot_vector = cloud_xyz_rot->points;
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz_0 (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz_1 (new pcl::PointCloud<pcl::PointXYZ>);
 
   for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr =
          cloud_xyz_rot_vector.begin(); itr != cloud_xyz_rot_vector.end(); ++itr) {
     // pcl::PointXYZ has members, x, y, and z
     if (1.50 < itr->x && itr->x < 1.675) { // 1.5~1.75 or 1.75~2.00
       if (-0.675 < itr->y && itr->y < 0.675) {
-        if (-0.3125 < itr->z && itr->z < 5.00) {
+        if (-0.3125 < itr->z && itr->z < 2.0) {
           pcl::PointXYZ p;
           p.x = itr->x; p.y = itr->y; p.z = itr->z;
           cloud_reduced_xyz->points.push_back(p);
+
         }
       }
     }
   }
 
-  // Conversion for visualization
-  pcl::PCLPointCloud2 cloud_reduced;
-  pcl::toPCLPointCloud2(*cloud_reduced_xyz, cloud_reduced);
-  sensor_msgs::PointCloud2 cloud_red;
-  pcl_conversions::fromPCL(cloud_reduced, cloud_red);
-  cloud_red.header.frame_id = "odom";
-  cloud_red.header.stamp = ros::Time::now();
-  pub_red.publish(cloud_red);
-
-  /* Reduce range of cloud_xyz_rot */
-
-  /* Automatic Measurement */
-  // 0-a. stitch measurement: -0.5 < z < -0.3
-  // 0-b. min width measurement: 0.3 < z < 5m
-  // 1. iterate
-  // 2. pick point if y < 0
-  // 3. compare point with all points if 0 < y
-  // 4. pick point-pare recording shortest distance
-  // 5. compare the point with previous point
-  // 6. update min
-  // 7. display value in text in between 2 points
-
   double width_min = 2.0; // initialize with a constant
   double width_stitch = 4.0;
-  pcl::PointXYZ p_s, p_e, p_m;
+  geometry_msgs::Point p_s, p_e, p_m;
   for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr_1 =
          cloud_reduced_xyz->points.begin(); itr_1 != cloud_reduced_xyz->points.end(); ++itr_1) {
     if (itr_1->y < 0) {
@@ -205,42 +204,64 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
       }
     }
   }
-  std::cerr << "width_min = " << width_min << std::endl
-            << "width_stitch = " << width_stitch << std::endl
-            <<", point inbetween = "  << std::endl
-            << "(" << p_s.x << ", " << p_s.y << ", " << p_s.z << ")" << std::endl
-            << "(" << p_e.x << ", " << p_e.y << ", " << p_e.z << ")" << std::endl
-            << "(" << p_m.x << ", " << p_m.y << ", " << p_m.z << ")" << std::endl;
+  // Conversion for visualization
+  // pcl::PCLPointCloud2 cloud_reduced;
+  // pcl::toPCLPointCloud2(*cloud_reduced_xyz, cloud_reduced);
+  // sensor_msgs::PointCloud2 cloud_red;
+  // pcl_conversions::fromPCL(cloud_reduced, cloud_red);
+  // cloud_red.header.frame_id = "odom";
+  // cloud_red.header.stamp = ros::Time::now();
+  // pub_red.publish(cloud_red);
+
+  /* Reduce range of cloud_xyz_rot */
+
+  /* Automatic Measurement */
+  // 0-a. stitch measurement: -0.5 < z < -0.3
+  // 0-b. min width measurement: 0.3 < z < 5m
+  // 1. iterate
+  // 2. pick point if y < 0
+  // 3. compare point with all points if 0 < y
+  // 4. pick point-pare recording shortest distance
+  // 5. compare the point with previous point
+  // 6. update min
+  // 7. display value in text in between 2 points
+
+   std::cerr << "width_min = " << width_min << std::endl
+             << "width_stitch = " << width_stitch << std::endl
+             <<", point inbetween = "  << std::endl
+             << "(" << p_s.x << ", " << p_s.y << ", " << p_s.z << ")" << std::endl
+             << "(" << p_e.x << ", " << p_e.y << ", " << p_e.z << ")" << std::endl
+             << "(" << p_m.x << ", " << p_m.y << ", " << p_m.z << ")" << std::endl;
 
   // Display the value
-  visualization_msgs::Marker texts; // TEXT_VIEW_FACING
-  texts.header.frame_id = "/odom";
-  texts.header.stamp = ros::Time::now();
-  texts.ns = "texts";
-  texts.action = visualization_msgs::Marker::ADD;
-  texts.id = 1;
-  texts.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-  texts.pose.position.x = p_m.x;
-  texts.pose.position.y = p_m.y;
-  texts.pose.position.z = -0.500;
-  texts.pose.orientation.x = 0.0;
-  texts.pose.orientation.y = 0.0;
-  texts.pose.orientation.z = 0.0;
-  texts.pose.orientation.w = 1.0;
-  texts.scale.x = 0.2;
-  texts.scale.y = 0.2;
-  texts.scale.z = 0.2;
-  texts.color.r = 0.0f;
-  texts.color.g = 1.0f;
-  texts.color.b = 0.0f;
-  texts.color.a = 1.0;
-  std::ostringstream strs; strs << width_stitch;
-  std::string str = strs.str();
-  texts.text = str;
-  pub_t.publish(texts);
+   visualization_msgs::Marker texts; // TEXT_VIEW_FACING
+   texts.header.frame_id = "/odom";
+   texts.header.stamp = ros::Time::now();
+   texts.ns = "texts";
+   texts.action = visualization_msgs::Marker::ADD;
+   texts.id = 1;
+   texts.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+   texts.pose.position.x = p_m.x;
+   texts.pose.position.y = p_m.y;
+   texts.pose.position.z = 1.00;
+   texts.pose.orientation.x = 0.0;
+   texts.pose.orientation.y = 0.0;
+   texts.pose.orientation.z = 0.0;
+   texts.pose.orientation.w = 1.0;
+   texts.scale.x = 0.2;
+   texts.scale.y = 0.2;
+   texts.scale.z = 0.2;
+   texts.color.r = 1.0f;
+   texts.color.g = 0.0f;
+   texts.color.b = 0.0f;
+   texts.color.a = 1.0;
+   std::ostringstream strs; strs << width_min;
+   std::string str = strs.str();
+   texts.text = str;
+   pub_t.publish(texts);
 
-  // geometry_msgs::Point p_stitch, p_min;
-  // p_stitch.x = 0; p_stitch.y = 0; p_stitch.z = 0;
+   geometry_msgs::Point p_stitch, p_min;
+   p_stitch.x = 0; p_stitch.y = 0; p_stitch.z = 0;
 
   /* Automatic Measurement */
 
@@ -256,12 +277,12 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
 
   points.id = 0;
   points.type = visualization_msgs::Marker::ARROW;
-  points.scale.x = 0.1;
-  points.scale.y = 0.1;
-  points.scale.z = 0.1;
+  points.scale.x = 0.05;
+  points.scale.y = 0.05;
+  points.scale.z = 0.05;
   // Points are green
-  points.color.g = 1.0f;
-  points.color.r = 0.0f;
+  points.color.g = 0.0f;
+  points.color.r = 1.0f;
   points.color.b = 0.0f;
   points.color.a = 1.0;
 
@@ -399,12 +420,13 @@ int main (int argc, char** argv) {
   // pub_f = nh.advertise<sensor_msgs::PointCloud2>("output_f", 1);
   pub_v = nh.advertise<sensor_msgs::PointCloud2>("output_v", 1);
   pub_r = nh.advertise<sensor_msgs::PointCloud2>("cloud_rot", 1);
-  pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_red", 1);
+  // pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_red", 1);
   // pub_c = nh.advertise<sensor_msgs::PointCloud2>("cluster_c", 1);
   // pub = nh.advertise<pcl_msgs::ModelCoefficients>("output", 1);
   // pub = nh.advertise<pcl_msgs::PointIndices>("output", 1);
   pub_m = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
   pub_t = nh.advertise<visualization_msgs::Marker>("texts", 1, 0);
+  pub_marker = nh.advertise<visualization_msgs::Marker>("center_line", 1, 0);
   // Spin
   ros::spin();
 }
