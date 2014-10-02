@@ -39,8 +39,7 @@ int main (int argc, char** argv) {
   
   // Create a ROS subscriber for the input point cloud
   // when topic /input is incoming, cloud_cb callback is called
-  // assemble_cloud -> cloud_pcd
-  ros::Subscriber sub = nh.subscribe("cloud_pcd", 1, cloud_cb);
+  ros::Subscriber sub = nh.subscribe("assemble_cloud", 1, cloud_cb);
   
   // Create a ROS publisher for the output point cloud
   // A node has both of publisheres and subscribers.
