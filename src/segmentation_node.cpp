@@ -197,9 +197,9 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
                      + pow(fabs(itr_1->z - itr_2->z), 2));
           if (tmp <= width_min) {
             width_min = tmp;
-            p_m.x = itr_1->x;
+            p_m.x = itr_1->x; // ignore adding sqrt
             p_m.y = itr_1->y + sqrt(pow(fabs(itr_1->y - itr_2->y), 2)) / 2;
-            p_m.z = itr_1->z;
+            p_m.z = itr_1->z; // ignore adding sqrt
             p_s.x = itr_1->x; p_s.y = itr_1->y; p_s.z = itr_1->z;
             p_e.x = itr_2->x; p_e.y = itr_2->y; p_e.z = itr_2->z;
           } else if (-0.3125 < itr_1->z && itr_1->z < 0.325 && tmp <= width_stitch) {
