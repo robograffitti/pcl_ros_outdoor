@@ -2,13 +2,13 @@ my_pcl_tutorial
 ===============
 
 1. Create a catkin package
-catkin_create_pkg my_pcl_tutorial pcl_conversions pcl_ros roscpp sensor_msgs
+catkin_create_pkg pcl_ros_outdoor pcl_conversions pcl_ros roscpp sensor_msgs
 
 2. Modify the package.xml
 <build_depend>libpcl-all-dev</build_depend>
 <run_depend>libpcl-all</run_depend>
 
-3. Create a node (my_pcl_tutorial_node.cpp)
+3. Create a node (pcl_ros_outdoor_node.cpp)
 
 4. Modify the CMakeLists.txt
 add_executable(example src/example.cpp)

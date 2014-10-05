@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(my_pcl_tutorial)
+project(pcl_ros_outdoor)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -83,7 +83,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES my_pcl_tutorial
+#  LIBRARIES pcl_ros_outdoor
 #  CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs
 #  DEPENDS system_lib
 )
@@ -100,22 +100,22 @@ include_directories(
 )
 
 ## Declare a cpp library
-# add_library(my_pcl_tutorial
-#   src/${PROJECT_NAME}/my_pcl_tutorial.cpp
+# add_library(pcl_ros_outdoor
+#   src/${PROJECT_NAME}/pcl_ros_outdoor.cpp
 # )
 
 ## Declare a cpp executable
-add_executable(my_pcl_tutorial_node src/my_pcl_tutorial_node.cpp)
+add_executable(pcl_skeleton src/pcl_skeleton.cpp)
 add_executable(voxel_node src/voxel_node.cpp)
 add_executable(segmentation_node src/segmentation_node.cpp)
 # add_executable(example src/example.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(my_pcl_tutorial_node my_pcl_tutorial_generate_messages_cpp)
+# add_dependencies(pcl_skeleton pcl_ros_outdoor_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(my_pcl_tutorial_node ${catkin_LIBRARIES})
+target_link_libraries(pcl_skeleton ${catkin_LIBRARIES})
 target_link_libraries(voxel_node ${catkin_LIBRARIES})
 target_link_libraries(segmentation_node ${catkin_LIBRARIES})
 # target_link_libraries(example ${catkin_LIBRARIES})
@@ -135,7 +135,7 @@ target_link_libraries(segmentation_node ${catkin_LIBRARIES})
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS my_pcl_tutorial my_pcl_tutorial_node
+# install(TARGETS pcl_ros_outdoor pcl_skeleton
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -160,11 +160,10 @@ target_link_libraries(segmentation_node ${catkin_LIBRARIES})
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_my_pcl_tutorial.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_pcl_ros_outdoor.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-

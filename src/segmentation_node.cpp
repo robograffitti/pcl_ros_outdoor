@@ -20,11 +20,9 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
-#include <pcl/common/pca.h>
 
 ros::Publisher pub_voxel; // voxel cloud, pub_voxel
 ros::Publisher pub_plane; // plane cloud, pub_planelane
-// ros::Publisher pub_f;
 ros::Publisher pub_rot; // rotated cloud, pub_rot
 ros::Publisher pub_red; // reduced cloud, pub_red
 // How to avoid hard-coding a topic name?
@@ -296,7 +294,6 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   // 7. display value in text in between 2 points
 }
 
-
 int main (int argc, char** argv) {
   // Initialize ROS
   ros::init (argc, argv, "my_pcl_tutorial");
@@ -315,6 +312,7 @@ int main (int argc, char** argv) {
   pub_pca = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
   pub_text = nh.advertise<visualization_msgs::Marker>("texts", 1, 0);
   pub_center = nh.advertise<visualization_msgs::Marker>("center_line", 1, 0);
+
   // Spin
   ros::spin();
 }
