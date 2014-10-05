@@ -27,9 +27,10 @@ ros::Publisher pub_plane; // plane cloud, pub_planelane
 ros::Publisher pub_rot; // rotated cloud, pub_rot
 ros::Publisher pub_red; // reduced cloud, pub_red
 // How to avoid hard-coding a topic name?
-ros::Publisher pub_pca; // pca arrow
-ros::Publisher pub_text; // text
-ros::Publisher pub_center;
+ros::Publisher pub_marker;
+// ros::Publisher pub_pca; // pca arrow
+// ros::Publisher pub_text; // text
+// ros::Publisher pub_center;
 
 // For research, refering to existing equation,
 // explain how parameter value is defined.
@@ -38,10 +39,6 @@ ros::Publisher pub_center;
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   // std::cerr << "in cloud_cb" << std::endl;
-  // Container for original & filtered data
-  // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_p (new pcl::PointCloud<pcl::PointXYZ>);
-  // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
-
   /* 0. Importing input cloud */
   pcl::PCLPointCloud2 *cloud = new pcl::PCLPointCloud2; // initialize object
   pcl_conversions::toPCL(*input, *cloud); // from input, generate content of cloud
@@ -116,11 +113,11 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   points.type = visualization_msgs::Marker::ARROW;
 
   points.pose.orientation.w = 1.0;
-  points.scale.x = 0.025;
-  points.scale.y = 0.025;
-  points.scale.z = 0.025;
-  points.color.g = 0.0f;
-  points.color.r = 0.0f;
+  points.scale.x = 0.05;
+  points.scale.y = 0.05;
+  points.scale.z = 0.05;
+  points.color.g = 0.25f;
+  points.color.r = 0.25f;
   points.color.b = 1.0f;
   points.color.a = 1.0;
 
@@ -131,7 +128,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   p_1.z = eigen_vectors(0,2);
   points.points.push_back(p_0);
   points.points.push_back(p_1);
-  pub_pca.publish(points);
+  pub_marker.publish(points);
 
   /* 5. Point Cloud Rotation  */
   eigen_vectors(0,2) = 0; // ignore very small z-value
@@ -230,8 +227,8 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   visualization_msgs::Marker texts; // TEXT_VIEW_FACING
   texts.header.frame_id = "/odom";
   texts.header.stamp = ros::Time::now();
-  texts.ns = "texts"; // namespace + ID
-  texts.id = 1;
+  texts.ns = "text"; // namespace + ID
+  texts.id = 0;
   texts.action = visualization_msgs::Marker::ADD;
   texts.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
 
@@ -246,16 +243,16 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   texts.scale.x = 0.2;
   texts.scale.y = 0.2;
   texts.scale.z = 0.2;
-  texts.color.r = 0.0f;
+  texts.color.r = 1.0f;
   texts.color.g = 1.0f;
-  texts.color.b = 0.0f;
+  texts.color.b = 1.0f;
   texts.color.a = 1.0;
 
   // setText
   std::ostringstream strs; strs << width_min;
   std::string str = strs.str();
   texts.text = str;
-  pub_text.publish(texts);
+  pub_marker.publish(texts);
 
   /* 6. Visualize center line */
   visualization_msgs::Marker line_strip;
@@ -265,7 +262,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   line_strip.action = visualization_msgs::Marker::ADD;
   line_strip.type = visualization_msgs::Marker::LINE_STRIP;
   line_strip.pose.orientation.w = 1.0;
-  line_strip.id = 2; // set id
+  line_strip.id = 0; // set id
 
   line_strip.scale.x = 0.05;
   line_strip.color.r = 1.0f;
@@ -278,7 +275,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   p_e.x = p_m.x; p_e.y = p_m.y; p_e.z = 0;
   line_strip.points.push_back(p_s);
   line_strip.points.push_back(p_e);
-  pub_center.publish(line_strip);
+  pub_marker.publish(line_strip);
 
   /* PCA Visualization */
   // geometry_msgs::Pose pose; tf::poseEigenToMsg(pca.getEigenVectors, pose);
@@ -310,9 +307,9 @@ int main (int argc, char** argv) {
   pub_voxel = nh.advertise<sensor_msgs::PointCloud2>("voxel", 1);
   pub_rot = nh.advertise<sensor_msgs::PointCloud2>("cloud_rotated", 1);
   pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_red", 1);
-  pub_pca = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
-  pub_text = nh.advertise<visualization_msgs::Marker>("texts", 1, 0);
-  pub_center = nh.advertise<visualization_msgs::Marker>("center", 1, 0);
+  pub_marker = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
+  // pub_text = nh.advertise<visualization_msgs::Marker>("texts", 1, 0);
+  // pub_center = nh.advertise<visualization_msgs::Marker>("center", 1, 0);
 
   // Spin
   ros::spin();
