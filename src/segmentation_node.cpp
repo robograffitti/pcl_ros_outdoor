@@ -20,6 +20,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include <pcl/common/pca.h>
 
 ros::Publisher pub_voxel; // voxel cloud, pub_voxel
 ros::Publisher pub_plane; // plane cloud, pub_planelane
@@ -159,10 +160,10 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   // original, transformed, transformation matrix
   pcl::transformPointCloud(*cloud_xyz, *cloud_xyz_rot, rot_z);
 
-  pcl::PCLPointCloud2 out_r;
+  pcl::PCLPointCloud2 out_rot;
   sensor_msgs::PointCloud2 output_rot;
   pcl::toPCLPointCloud2(*cloud_xyz_rot, out_rot);
-  pcl_conversions::fromPCL(out_r, output_rot);
+  pcl_conversions::fromPCL(out_rot, output_rot);
   pub_rot.publish(output_rot);
 
   /* 6. Point Cloud Reduction */
@@ -211,12 +212,12 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
       }
     }
   }
-  pcl::PCLPointCloud2 out_r;
-  pcl::toPCLPointCloud2(*cloud_reduced_xyz, out_r);
+  pcl::PCLPointCloud2 out_red;
+  pcl::toPCLPointCloud2(*cloud_reduced_xyz, out_red);
   sensor_msgs::PointCloud2 output_red;
-  pcl_conversions::fromPCL(out_r, output_red);
-  cloud_red.header.frame_id = "odom";
-  cloud_red.header.stamp = ros::Time::now();
+  pcl_conversions::fromPCL(out_red, output_red);
+  output_red.header.frame_id = "odom";
+  output_red.header.stamp = ros::Time::now();
   pub_red.publish(output_red);
 
   std::cerr << "width_min = " << width_min << std::endl
@@ -260,12 +261,12 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   visualization_msgs::Marker line_strip;
   line_strip.header.frame_id = "/odom";
   line_strip.header.stamp = ros::Time::now();
-  line_strip.ns = "center_line"; // topic name?
+  line_strip.ns = "center";
   line_strip.action = visualization_msgs::Marker::ADD;
-  line_strip.pose.orientation.w = 1.0;
-  line_strip.id = 1; // set id
-
   line_strip.type = visualization_msgs::Marker::LINE_STRIP;
+  line_strip.pose.orientation.w = 1.0;
+  line_strip.id = 2; // set id
+
   line_strip.scale.x = 0.05;
   line_strip.color.r = 1.0f;
   line_strip.color.g = 0.0f;
@@ -275,9 +276,9 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   // geometry_msgs::Point p_stitch, p_min;
   p_s.x = 0; p_s.y = 0; p_s.z = 0;
   p_e.x = p_m.x; p_e.y = p_m.y; p_e.z = 0;
-  line_strip.points.pushback(p_s);
-  line_strip.points.pushback(p_e);
-  pub_center(line_strip);
+  line_strip.points.push_back(p_s);
+  line_strip.points.push_back(p_e);
+  pub_center.publish(line_strip);
 
   /* PCA Visualization */
   // geometry_msgs::Pose pose; tf::poseEigenToMsg(pca.getEigenVectors, pose);
@@ -311,7 +312,7 @@ int main (int argc, char** argv) {
   pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_red", 1);
   pub_pca = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
   pub_text = nh.advertise<visualization_msgs::Marker>("texts", 1, 0);
-  pub_center = nh.advertise<visualization_msgs::Marker>("center_line", 1, 0);
+  pub_center = nh.advertise<visualization_msgs::Marker>("center", 1, 0);
 
   // Spin
   ros::spin();
