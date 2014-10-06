@@ -7,6 +7,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/Point.h>
 #include <visualization_msgs/Marker.h>
+#include <jsk_pcl_ros/PointsArray.h> //
 
 // PCL related
 #include <pcl_conversions/pcl_conversions.h>
@@ -36,6 +37,26 @@ ros::Publisher pub_marker;
 // explain how parameter value is defined.
 
 // Use nodelet to devide this process into threads
+
+pcl::PointCloud<pcl::PointXYZ>::Ptr divide(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot,
+                                           double x_min, double x_max, double y_min, double y_max,
+                                           double z_min, double z_max) {
+  std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > cloud_xyz_rot_vector;
+  cloud_xyz_rot_vector = cloud_xyz_rot->points;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
+  for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr =
+         cloud_xyz_rot_vector.begin(); itr != cloud_xyz_rot_vector.end(); ++itr) {
+    if (x_min < itr->x && itr->x < x_max) { // 1.5~1.75 or 1.75~2.00: 1.5~1.675
+      if (y_min < itr->y && itr->y < y_max) {
+        if (z_min < itr->z && itr->z < z_max) {
+          pcl::PointXYZ p;
+          p.x = itr->x; p.y = itr->y; p.z = itr->z;
+          cloud_reduced_xyz->points.push_back(p);
+        }
+      }
+    }
+  } return cloud_reduced_xyz;
+}
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   // std::cerr << "in cloud_cb" << std::endl;
@@ -165,26 +186,55 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
 
   /* 6. Point Cloud Reduction */
   // iterator should be shorten
-  std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > cloud_xyz_rot_vector;
-  cloud_xyz_rot_vector = cloud_xyz_rot->points;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
-  for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr =
-         cloud_xyz_rot_vector.begin(); itr != cloud_xyz_rot_vector.end(); ++itr) {
-    // pcl::PointXYZ has members, x, y, and z
-    if (1.50 < itr->x && itr->x < 1.675) { // 1.5~1.75 or 1.75~2.00, need 3 or more ranges
-      if (-0.675 < itr->y && itr->y < 0.675) {
-        if (-0.3125 < itr->z && itr->z < 2.0) {
-          pcl::PointXYZ p;
-          p.x = itr->x; p.y = itr->y; p.z = itr->z;
-          cloud_reduced_xyz->points.push_back(p);
-        }
-      }
-    }
-  }
+  // std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > cloud_xyz_rot_vector;
+  // cloud_xyz_rot_vector = cloud_xyz_rot->points;
+  // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
+  // double y_mean, y_mean_old;
+  // for (std::vector<int>::const_iterator pitr = cloud_xyz_rot->points.begin();
+  //      pitr != cloud_xyz_rot->points.end(); pitr++) {
+  //   pcl::PointXYZ p = cloud_xyz_rot->points[*pitr]; // tmp var
+  //   if (1.50 < p.x && p.x < 1.675) { // 1.5~1.75 or 1.75~2.00, need 3 or more ranges
+  //     if (-0.675 < p.y && p.y < 0.675) {
+  //       if (-0.3125 < p.z && p.z < 2.0) {
+  //         cloud_reduced_xyz->points.push_back(p);
+  //       }
+  //     }
+  //   }
+  // }
 
+  // A. Divide by range of x value : function returning cloud_reduced_xyz (cloud, x_min, x_max)
+  // std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > cloud_xyz_rot_vector;
+  // cloud_xyz_rot_vector = cloud_xyz_rot->points;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
+  cloud_reduced_xyz = divide(cloud_xyz_rot, 1.50, 1.675, -0.675, 0.675, -0.3125, 2.0); // o(n) = n
+
+  // double y_mean, y_mean_old;
+  // int i = 0; // loop counter
+  // for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr =
+  //        cloud_xyz_rot_vector.begin(); itr != cloud_xyz_rot_vector.end(); ++itr) {
+  //   if (1.50 < itr->x && itr->x < 1.675) { // 1.5~1.75 or 1.75~2.00, need 3 or more ranges
+  //     if (-0.675 < itr->y && itr->y < 0.675) {
+  //       if (-0.3125 < itr->z && itr->z < 2.0) {
+  //         // std::cerr << "interator position = " << *itr << std::endl;
+  //         pcl::PointXYZ p;
+  //         p.x = itr->x; p.y = itr->y; p.z = itr->z;
+  //         cloud_reduced_xyz->points.push_back(p);
+  //         // if (i == 0) {
+  //         //   y_mean_old = itr->y;
+  //         // } else {
+  //         //   y_mean = ((i - 1) * y_mean_old + itr->y) / i; // really need this?
+  //         // }
+  //       }
+  //     }
+  //   } i++;
+  // } std::cerr << "mean value of y = " << y_mean << std::endl;
+
+  // 関数化しよう return marker with cumulative ID
   double width_min = 2.0; // initialize with a constant
   double width_stitch = 4.0;
   geometry_msgs::Point p_s, p_e, p_m; // p_l, p_r;
+  std::vector<geometry_msgs::Point> p_vector;
+  // o(n) = n^2
   for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr_1 =
          cloud_reduced_xyz->points.begin(); itr_1 != cloud_reduced_xyz->points.end(); ++itr_1) {
     if (itr_1->y < 0) {
@@ -197,18 +247,22 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
                      + pow(fabs(itr_1->z - itr_2->z), 2));
           if (tmp <= width_min) {
             width_min = tmp;
+            p_s.x = itr_1->x; p_s.y = itr_1->y; p_s.z = itr_1->z;
+            p_e.x = itr_2->x; p_e.y = itr_2->y; p_e.z = itr_2->z;
             p_m.x = itr_1->x; // ignore adding sqrt
             p_m.y = itr_1->y + sqrt(pow(fabs(itr_1->y - itr_2->y), 2)) / 2;
             p_m.z = itr_1->z; // ignore adding sqrt
-            p_s.x = itr_1->x; p_s.y = itr_1->y; p_s.z = itr_1->z;
-            p_e.x = itr_2->x; p_e.y = itr_2->y; p_e.z = itr_2->z;
           } else if (-0.3125 < itr_1->z && itr_1->z < 0.325 && tmp <= width_stitch) {
             width_stitch = tmp;
           }
         }
       }
     }
-  }
+  } // id=itr
+  p_vector.push_back(p_s);
+  p_vector.push_back(p_e);
+  p_vector.push_back(p_m);
+
   pcl::PCLPointCloud2 out_red;
   pcl::toPCLPointCloud2(*cloud_reduced_xyz, out_red);
   sensor_msgs::PointCloud2 output_red;
@@ -216,10 +270,9 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   output_red.header.frame_id = "odom";
   output_red.header.stamp = ros::Time::now();
   pub_red.publish(output_red);
-
   std::cerr << "width_min = " << width_min << std::endl
             << "width_stitch = " << width_stitch << std::endl
-            <<", point inbetween = "  << std::endl
+            << "point inbetween = "  << std::endl
             << "(" << p_s.x << ", " << p_s.y << ", " << p_s.z << ")" << std::endl
             << "(" << p_e.x << ", " << p_e.y << ", " << p_e.z << ")" << std::endl
             << "(" << p_m.x << ", " << p_m.y << ", " << p_m.z << ")" << std::endl;
@@ -306,7 +359,7 @@ int main (int argc, char** argv) {
   pub_plane = nh.advertise<sensor_msgs::PointCloud2>("plane", 1);
   pub_voxel = nh.advertise<sensor_msgs::PointCloud2>("voxel", 1);
   pub_rot = nh.advertise<sensor_msgs::PointCloud2>("cloud_rotated", 1);
-  pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_red", 1);
+  pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_reduced", 1);
   pub_marker = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
   // pub_text = nh.advertise<visualization_msgs::Marker>("texts", 1, 0);
   // pub_center = nh.advertise<visualization_msgs::Marker>("center", 1, 0);
