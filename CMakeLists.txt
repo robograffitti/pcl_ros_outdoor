@@ -107,7 +107,7 @@ include_directories(
 ## Declare a cpp executable
 add_executable(pcl_skeleton src/pcl_skeleton.cpp)
 add_executable(voxel_node src/voxel_node.cpp)
-add_executable(segmentation_node src/segmentation_node.cpp)
+add_executable(garden_feature_detector src/garden_feature_detector.cpp)
 # add_executable(example src/example.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -117,7 +117,7 @@ add_executable(segmentation_node src/segmentation_node.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(pcl_skeleton ${catkin_LIBRARIES})
 target_link_libraries(voxel_node ${catkin_LIBRARIES})
-target_link_libraries(segmentation_node ${catkin_LIBRARIES})
+target_link_libraries(garden_feature_detector ${catkin_LIBRARIES})
 # target_link_libraries(example ${catkin_LIBRARIES})
 
 #############
