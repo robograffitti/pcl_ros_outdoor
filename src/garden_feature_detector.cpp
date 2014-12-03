@@ -347,13 +347,13 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
 
 int main (int argc, char** argv) {
   // Initialize ROS
-  ros::init (argc, argv, "my_pcl_tutorial");
+  ros::init (argc, argv, "garden_feature_detector");
   ros::NodeHandle nh;
 
   // Create a ROS subscriber for the input point cloud
   // assemble_cloud -> cloud_pcd
   std::cerr << "my_pcl_tutorial started." << std::endl;
-  ros::Subscriber sub = nh.subscribe("cloud_pcd", 1, cloud_cb);
+  ros::Subscriber sub = nh.subscribe("assemble_cloud", 1, cloud_cb);
 
   // Create a ROS publisher for the output point cloud
   pub_plane = nh.advertise<sensor_msgs::PointCloud2>("plane", 1);
