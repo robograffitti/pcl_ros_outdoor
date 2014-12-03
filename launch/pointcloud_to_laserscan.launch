@@ -1,9 +1,6 @@
 <?xml version="1.0"?>
-
 <launch>
-
     <!-- <arg name="camera" default="camera" /> -->
-
     <!-- start sensor-->
     <!-- <include file="$(find openni2_launch)/launch/openni2.launch">
         <arg name="camera" default="$(arg camera)"/>
@@ -11,14 +8,11 @@
 
     <!-- run pointcloud_to_laserscan node -->
     <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan" name="pointcloud_to_laserscan">
-
         <param name="use_inf" value="true"/>
         <param name="use_concurrency" value="true"/>
-
         <param name="target_frame" value="base_link"/>
         <remap from="cloud_in" to="assemble_cloud"/>
         <remap from="scan" to="jsk_tilt_laser/scan"/>
-
     </node>
 
 </launch>
