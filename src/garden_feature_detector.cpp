@@ -152,6 +152,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   points.points.push_back(p_1);
   pub_marker.publish(points);
 
+  /* why rotated? */
   /* 5. Point Cloud Rotation  */
   eigen_vectors(0,2) = 0; // ignore very small z-value
   double norm = pow((pow(eigen_vectors(0,0), 2) + pow(eigen_vectors(0,1), 2)), 0.5);
