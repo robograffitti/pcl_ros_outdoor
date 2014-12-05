@@ -233,7 +233,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   // 関数化しよう return marker with cumulative ID
   double width_min = 2.0; // initialize with a constant
   double width_stitch = 4.0;
-  geometry_msgs::Point p_s, p_e, p_m; // p_l, p_r;
+  geometry_msgs::Point p_s, p_e, p_m; // declare points start, end, middle; p_l, p_r;
   std::vector<geometry_msgs::Point> p_vector;
   // o(n) = n^2
   for (std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::const_iterator itr_1 =
@@ -271,12 +271,6 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   output_red.header.frame_id = "/base_link"; // odom -> /base_link
   output_red.header.stamp = input_cloud.header.stamp; // ros::Time::now() -> header.stamp
   pub_red.publish(output_red);
-  std::cerr << "width_min = " << width_min << std::endl
-            << "width_stitch = " << width_stitch << std::endl
-            << "point inbetween = "  << std::endl
-            << "(" << p_s.x << ", " << p_s.y << ", " << p_s.z << ")" << std::endl
-            << "(" << p_e.x << ", " << p_e.y << ", " << p_e.z << ")" << std::endl
-            << "(" << p_m.x << ", " << p_m.y << ", " << p_m.z << ")" << std::endl;
 
   visualization_msgs::Marker texts; // TEXT_VIEW_FACING
   texts.header.frame_id = "/base_link"; // odom -> /base_link
@@ -309,6 +303,31 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   pub_marker.publish(texts);
 
   // setMarker
+  visualization_msgs::Marker width_min_line;
+  width_min_line.header.frame_id = "/base_link";
+  width_min_line.header.stamp = input_cloud.header.stamp;
+  width_min_line.ns = "width_min";
+  width_min_line.action = visualization_msgs::Marker::ADD;
+  width_min_line.type = visualization_msgs::Marker::LINE_STRIP;
+  width_min_line.pose.orientation.w = 1.0;
+  width_min_line.id = 1;
+
+  width_min_line.scale.x = 0.025;
+  width_min_line.color.r = 0.0f;
+  width_min_line.color.g = 1.0f;
+  width_min_line.color.b = 0.0f;
+  width_min_line.color.a = 1.0;
+
+  std::cerr << "width_min = " << width_min << std::endl
+            << "width_stitch = " << width_stitch << std::endl
+            << "point inbetween = "  << std::endl
+            << "(" << p_s.x << ", " << p_s.y << ", " << p_s.z << ")" << std::endl
+            << "(" << p_e.x << ", " << p_e.y << ", " << p_e.z << ")" << std::endl
+            << "(" << p_m.x << ", " << p_m.y << ", " << p_m.z << ")" << std::endl;
+
+  width_min_line.points.push_back(p_s);
+  width_min_line.points.push_back(p_e);
+  pub_marker.publish(width_min_line);
 
   /* 6. Visualize center line */
   visualization_msgs::Marker line_strip;
