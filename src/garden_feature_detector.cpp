@@ -308,6 +308,8 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   texts.text = str;
   pub_marker.publish(texts);
 
+  // setMarker
+
   /* 6. Visualize center line */
   visualization_msgs::Marker line_strip;
   line_strip.header.frame_id = "/base_link"; // odom -> /base_link
