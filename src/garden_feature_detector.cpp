@@ -1,4 +1,4 @@
-#include <iostream>
+#include <iostream> 
 // using namespace std;
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -27,16 +27,14 @@ ros::Publisher pub_voxel; // voxel cloud, pub_voxel
 ros::Publisher pub_plane; // plane cloud, pub_planelane
 ros::Publisher pub_rot; // rotated cloud, pub_rot
 ros::Publisher pub_red; // reduced cloud, pub_red
-// How to avoid hard-coding a topic name?
 ros::Publisher pub_marker;
 // ros::Publisher pub_pca; // pca arrow
 // ros::Publisher pub_text; // text
-// ros::Publisher pub_center;
-
-// For research, refering to existing equation,
+// ros::Publisher pub_center
+// 1. How to avoid hard-coding a topic name?
+// 2. For research, refering to existing equation,
 // explain how parameter value is defined.
-
-// Use nodelet to devide this process into threads
+// 3. Use nodelet to devide this process into threads
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr divide(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot,
                                            double x_min, double x_max, double y_min, double y_max,
@@ -58,10 +56,13 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr divide(const pcl::PointCloud<pcl::PointXYZ>:
   } return cloud_reduced_xyz;
 }
 
-void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
+void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   // std::cerr << "in cloud_cb" << std::endl;
   /* 0. Importing input cloud */
-  sensor_msgs::PointCloud2 input_cloud = *input;
+  // std_msgs::Header header = input->header;
+  // std::string frame_id = input->header.frame_id;
+  // sensor_msgs::PointCloud2 input_cloud = *input;
+
   pcl::PCLPointCloud2 *cloud = new pcl::PCLPointCloud2; // initialize object
   pcl_conversions::toPCL(*input, *cloud); // from input, generate content of cloud
   // reduce cloud above z > 3, width also should be narrowed
@@ -114,7 +115,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   sensor_msgs::PointCloud2 output_plane;
   pcl_conversions::fromPCL(out_p, output_plane);
   output_plane.header.frame_id = "/base_link"; // odom -> /base_link
-  output_plane.header.stamp = input_cloud.header.stamp; // ros::Time::now() -> header.stamp
+  output_plane.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
   pub_plane.publish(output_plane);
 
   /* 3. PCA application to get eigen */
@@ -128,7 +129,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   /* 4. PCA Visualization */
   visualization_msgs::Marker points;
   points.header.frame_id = "/base_link"; // odom -> /base_link
-  points.header.stamp = input_cloud.header.stamp; // ros::Time::now() -> header.stamp
+  points.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
   points.ns = "pca"; // namespace + id
   points.id = 0; // pca/0
   points.action = visualization_msgs::Marker::ADD;
@@ -270,12 +271,12 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   sensor_msgs::PointCloud2 output_red;
   pcl_conversions::fromPCL(out_red, output_red);
   output_red.header.frame_id = "/base_link"; // odom -> /base_link
-  output_red.header.stamp = input_cloud.header.stamp; // ros::Time::now() -> header.stamp
+  output_red.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
   pub_red.publish(output_red);
 
   visualization_msgs::Marker texts; // TEXT_VIEW_FACING
   texts.header.frame_id = "/base_link"; // odom -> /base_link
-  texts.header.stamp = input_cloud.header.stamp; // ros::Time::now() -> header.stamp
+  texts.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
   texts.ns = "text"; // namespace + ID
   texts.id = 0;
   texts.action = visualization_msgs::Marker::ADD;
@@ -306,7 +307,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   // setMarker
   visualization_msgs::Marker width_min_line;
   width_min_line.header.frame_id = "/base_link";
-  width_min_line.header.stamp = input_cloud.header.stamp;
+  width_min_line.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
   width_min_line.ns = "width_min";
   width_min_line.action = visualization_msgs::Marker::ADD;
   width_min_line.type = visualization_msgs::Marker::LINE_STRIP;
@@ -333,7 +334,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& input) {
   /* 6. Visualize center line */
   visualization_msgs::Marker line_strip;
   line_strip.header.frame_id = "/base_link"; // odom -> /base_link
-  line_strip.header.stamp = input_cloud.header.stamp; // ros::Time::now() -> header.stamp
+  line_strip.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
   line_strip.ns = "center";
   line_strip.action = visualization_msgs::Marker::ADD;
   line_strip.type = visualization_msgs::Marker::LINE_STRIP;
@@ -375,7 +376,7 @@ int main (int argc, char** argv) {
 
   // Create a ROS subscriber for the input point cloud
   // assemble_cloud -> cloud_pcd
-  std::cerr << "my_pcl_tutorial started." << std::endl;
+  std::cerr << "garden_feature_detector started." << std::endl;
   ros::Subscriber sub = nh.subscribe("assemble_cloud", 1, cloud_cb);
 
   // Create a ROS publisher for the output point cloud
