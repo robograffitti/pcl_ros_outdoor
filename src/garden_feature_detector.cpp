@@ -25,8 +25,12 @@
 
 ros::Publisher pub_voxel; // voxel cloud, pub_voxel
 ros::Publisher pub_plane; // plane cloud, pub_planelane
+ros::Publisher pub_rot; // rotated cloud, pub_rot
 ros::Publisher pub_red; // reduced cloud, pub_red
 ros::Publisher pub_marker;
+// ros::Publisher pub_pca; // pca arrow
+// ros::Publisher pub_text; // text
+// ros::Publisher pub_center
 // 1. How to avoid hard-coding a topic name?
 // 2. For research, refering to existing equation,
 // explain how parameter value is defined.
@@ -142,7 +146,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   points.color.a = 1.0;
 
   geometry_msgs::Point p_0, p_1;
-  p_0.x = 0; p_0.y = 0; p_0.z = 0; // origin in /base_link
+  p_0.x = 0; p_0.y = 0; p_0.z = 0;
   p_1.x = eigen_vectors(0,0);
   p_1.y = eigen_vectors(0,1);
   p_1.z = eigen_vectors(0,2);
@@ -150,7 +154,8 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   points.points.push_back(p_1);
   pub_marker.publish(points);
 
-  /* 5. Point Cloud Rotation: Deprecated!  */
+  /* why rotated? */
+  /* 5. Point Cloud Rotation  */
   eigen_vectors(0,2) = 0; // ignore very small z-value
   double norm = pow((pow(eigen_vectors(0,0), 2) + pow(eigen_vectors(0,1), 2)), 0.5);
   double nx = eigen_vectors(0,0) / norm;
@@ -169,6 +174,19 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   //           << rot_z(2,2) << ", " << rot_z(2,3) << std::endl;
   // std::cerr << rot_z(3,0) << ", " << rot_z(3,1) << ", "
   //           << rot_z(3,2) << ", " << rot_z(3,3) << std::endl;
+
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::fromPCLPointCloud2(*cloudPtr, *cloud_xyz); // from PointCloud2 to PointXYZ
+  // Transformation: Rotation, Translation
+  // original, transformed, transformation matrix
+  pcl::transformPointCloud(*cloud_xyz, *cloud_xyz_rot, rot_z);
+
+  pcl::PCLPointCloud2 out_rot;
+  sensor_msgs::PointCloud2 output_rot;
+  pcl::toPCLPointCloud2(*cloud_xyz_rot, out_rot);
+  pcl_conversions::fromPCL(out_rot, output_rot);
+  pub_rot.publish(output_rot);
 
   /* 6. Point Cloud Reduction */
   // iterator should be shorten
@@ -192,7 +210,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   // std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > cloud_xyz_rot_vector;
   // cloud_xyz_rot_vector = cloud_xyz_rot->points;
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
-  cloud_reduced_xyz = divide(cloud_voxel_xyz, 1.50, 1.675, -0.675, 0.675, -0.3125, 2.0); // o(n) = n
+  cloud_reduced_xyz = divide(cloud_xyz_rot, 1.50, 1.675, -0.675, 0.675, -0.3125, 2.0); // o(n) = n
 
   // double y_mean, y_mean_old;
   // int i = 0; // loop counter
@@ -365,6 +383,7 @@ int main (int argc, char** argv) {
   // Create a ROS publisher for the output point cloud
   pub_plane = nh.advertise<sensor_msgs::PointCloud2>("plane", 1);
   pub_voxel = nh.advertise<sensor_msgs::PointCloud2>("voxel", 1);
+  pub_rot = nh.advertise<sensor_msgs::PointCloud2>("cloud_rotated", 1);
   pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_reduced", 1);
   pub_marker = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
 
