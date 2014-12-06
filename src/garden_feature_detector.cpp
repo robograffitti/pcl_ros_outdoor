@@ -36,6 +36,7 @@ ros::Publisher pub_marker;
 // explain how parameter value is defined.
 // 3. Use nodelet to devide this process into threads
 
+// Replace this function with SVM linear division
 pcl::PointCloud<pcl::PointXYZ>::Ptr divide(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot,
                                            double x_min, double x_max, double y_min, double y_max,
                                            double z_min, double z_max) {
@@ -312,7 +313,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   width_min_line.action = visualization_msgs::Marker::ADD;
   width_min_line.type = visualization_msgs::Marker::LINE_STRIP;
   width_min_line.pose.orientation.w = 1.0;
-  width_min_line.id = 1;
+  width_min_line.id = 0;
 
   width_min_line.scale.x = 0.025;
   width_min_line.color.r = 0.0f;
@@ -385,8 +386,6 @@ int main (int argc, char** argv) {
   pub_rot = nh.advertise<sensor_msgs::PointCloud2>("cloud_rotated", 1);
   pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_reduced", 1);
   pub_marker = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
-  // pub_text = nh.advertise<visualization_msgs::Marker>("texts", 1, 0);
-  // pub_center = nh.advertise<visualization_msgs::Marker>("center", 1, 0);
 
   // Spin
   ros::spin();
