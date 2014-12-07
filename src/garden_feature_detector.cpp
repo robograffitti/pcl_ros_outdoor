@@ -39,7 +39,7 @@ ros::Publisher pub_marker;
 
 // Replace this function with SVM linear division
 // rename divide to reduce... ?
-pcl::PointCloud<pcl::PointXYZ>::Ptr divide(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot,
+pcl::PointCloud<pcl::PointXYZ>::Ptr reduce(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot,
                                            double x_min, double x_max, double y_min, double y_max,
                                            double z_min, double z_max) {
   std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > cloud_xyz_rot_vector;
@@ -59,11 +59,23 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr divide(const pcl::PointCloud<pcl::PointXYZ>:
   } return cloud_reduced_xyz;
 }
 
-std::vector<pcl::PointCloud<pcl::PointXYZ> > series() {}
-// function to publish series of polygons
-pcl::PointCloud<pcl::PointXYZ>::Ptr reduce(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_zyz_rot) {
-  // return NULL;
+std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr >
+series(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, double pitch) {
+  // Divide large cloud
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > vector_cloud;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointXYZ tmp_p;
+  tmp_cloud->points.push_back(tmp_p);
+  vector_cloud.push_back(tmp_cloud);
+
+  // Create Polygon Marker
+
 }
+
+// function to publish series of polygons
+/* pcl::PointCloud<pcl::PointXYZ>::Ptr reduce(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_zyz_rot) {
+  // return NULL;
+  } */
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   // std::cerr << "in cloud_cb" << std::endl;
@@ -218,7 +230,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   // std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > cloud_xyz_rot_vector;
   // cloud_xyz_rot_vector = cloud_xyz_rot->points;
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
-  cloud_reduced_xyz = divide(cloud_xyz_rot, 1.50, 1.675, -0.675, 0.675, -0.3125, 2.0); // o(n) = n
+  cloud_reduced_xyz = reduce(cloud_xyz_rot, 1.50, 1.675, -0.675, 0.675, -0.3125, 2.0); // o(n) = n
 
   // double y_mean, y_mean_old;
   // int i = 0; // loop counter
