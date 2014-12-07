@@ -28,6 +28,10 @@ ros::Publisher pub_plane; // plane cloud, pub_planelane
 ros::Publisher pub_rot; // rotated cloud, pub_rot
 ros::Publisher pub_red; // reduced cloud, pub_red
 ros::Publisher pub_marker;
+
+// Global Variables
+// 
+
 // 1. How to avoid hard-coding a topic name?
 // 2. For research, refering to existing equation,
 // explain how parameter value is defined.
@@ -381,6 +385,7 @@ int main (int argc, char** argv) {
   pub_plane = nh.advertise<sensor_msgs::PointCloud2>("plane", 1);
   pub_voxel = nh.advertise<sensor_msgs::PointCloud2>("voxel", 1);
   pub_rot = nh.advertise<sensor_msgs::PointCloud2>("cloud_rotated", 1);
+  // pub_rot_plane = nh.advertise<sensor_msgs::PointCloud2>("plane_rotated", 1);
   pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_reduced", 1);
   pub_marker = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
 
