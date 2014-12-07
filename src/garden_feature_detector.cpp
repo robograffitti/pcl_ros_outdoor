@@ -1,5 +1,5 @@
 #include <iostream> 
-// using namespace std;
+// using namespace std; // namespace for std::string and etc.
 #include <ros/ros.h>
 #include <ros/console.h>
 
@@ -30,7 +30,7 @@ ros::Publisher pub_red; // reduced cloud, pub_red
 ros::Publisher pub_marker;
 
 // Global Variables
-// 
+//
 
 // 1. How to avoid hard-coding a topic name?
 // 2. For research, refering to existing equation,
@@ -38,6 +38,7 @@ ros::Publisher pub_marker;
 // 3. Use nodelet to devide this process into threads
 
 // Replace this function with SVM linear division
+// rename divide to reduce... ?
 pcl::PointCloud<pcl::PointXYZ>::Ptr divide(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot,
                                            double x_min, double x_max, double y_min, double y_max,
                                            double z_min, double z_max) {
@@ -56,6 +57,12 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr divide(const pcl::PointCloud<pcl::PointXYZ>:
       }
     }
   } return cloud_reduced_xyz;
+}
+
+std::vector<pcl::PointCloud<pcl::PointXYZ> > series() {}
+// function to publish series of polygons
+pcl::PointCloud<pcl::PointXYZ>::Ptr reduce(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_zyz_rot) {
+  // return NULL;
 }
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
