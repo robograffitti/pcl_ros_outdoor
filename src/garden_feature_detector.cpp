@@ -28,9 +28,6 @@ ros::Publisher pub_plane; // plane cloud, pub_planelane
 ros::Publisher pub_rot; // rotated cloud, pub_rot
 ros::Publisher pub_red; // reduced cloud, pub_red
 ros::Publisher pub_marker;
-// ros::Publisher pub_pca; // pca arrow
-// ros::Publisher pub_text; // text
-// ros::Publisher pub_center
 // 1. How to avoid hard-coding a topic name?
 // 2. For research, refering to existing equation,
 // explain how parameter value is defined.
