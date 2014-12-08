@@ -59,8 +59,45 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr reduce(const pcl::PointCloud<pcl::PointXYZ>:
   } return cloud_reduced_xyz;
 }
 
+std::vector<geometry_msgs::Point> point_vector(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_reduced) {
+  double width_min = 2.0; // initialize with a constant
+  double width_stitch = 4.0;
+  geometry_msgs::Point p_s, p_m, p_e;
+  std::vector<geometry_msgs::Point> p_vector;
+  pcl::PointXYZ *p_prev; double tmp_length;
+  // p_prev.x = 0; p_prev.y = 0; p_prev.z = 0;
+
+  for (pcl::PointCloud<pcl::PointXYZ>::iterator itr = cloud_xyz_reduced->begin();
+       itr != cloud_xyz_reduced->end(); itr++) {
+    // initialize p_prev
+    if ( itr == cloud_xyz_reduced->begin() ) {
+      p_prev = &*itr;
+      continue;
+    }
+    // get distance and p_vector
+    if ( (p_prev->y < 0 && 0 <= itr->y) || (itr->y < 0 && 0 <= p_prev->y) ) {
+      tmp_length = sqrt(pow(fabs(p_prev->x - itr->x), 2)
+                        + pow(fabs(p_prev->y - itr->y), 2)
+                        + pow(fabs(p_prev->z - itr->z), 2));
+      if (tmp_length <= width_min) {
+        width_min = tmp_length;
+        p_s.x = p_prev->x; p_s.y = p_prev->y; p_s.z = p_prev->z;
+        p_e.x = itr->x; p_e.y = itr->y; p_e.z = itr->z;
+        p_m.x = p_prev->x; // ignore adding sqrt
+        p_m.y = p_prev->y + sqrt(pow(fabs(p_prev->y - itr->y), 2)) / 2;
+        p_m.z = p_prev->z;
+      }
+    }
+    p_prev = &*itr;
+  }
+  // better to create own struct?
+  p_vector.push_back(p_s); p_vector.push_back(p_e); p_vector.push_back(p_m);
+  return p_vector;
+}
+
+// Separate into separate clouds
 std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>
-divide(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot) {
+separate(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot) {
   double x_pitch = 0.25, x_min = 0.0, x_max = 2.0; // 1.5~1.75 1.75~2.00 1.5~1.675
   double y_min = -0.675, y_max = 0.675;
   double z_min = -0.250, z_max = 2.000; // -0.3125, 2.0
@@ -83,9 +120,9 @@ divide(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot) {
       }
     }
     cloud_vector.push_back(tmp_cloud);
+    // Publish tmp_cloud
+    // Create polygon
   }
-  // Publish
-  // Create Polygon Marker
 }
 
 // function to publish series of polygons
@@ -247,6 +284,8 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   // cloud_xyz_rot_vector = cloud_xyz_rot->points;
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
   cloud_reduced_xyz = reduce(cloud_xyz_rot, 1.50, 1.675, -0.675, 0.675, -0.3125, 2.0); // o(n) = n
+
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_vector = separate(cloud_xyz_rot);
 
   // double y_mean, y_mean_old;
   // int i = 0; // loop counter
