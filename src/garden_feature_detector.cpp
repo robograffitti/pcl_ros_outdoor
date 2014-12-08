@@ -32,7 +32,7 @@ ros::Publisher pub_marker;
 // Global Variables
 //
 
-// 1. How to avoid hard-coding a topic name?
+// 1. How to avoid hard-coding a topic name? (use parameters, etc.)
 // 2. For research, refering to existing equation,
 // explain how parameter value is defined.
 // 3. Use nodelet to devide this process into threads
@@ -59,17 +59,33 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr reduce(const pcl::PointCloud<pcl::PointXYZ>:
   } return cloud_reduced_xyz;
 }
 
-std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr >
-series(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, double pitch) {
+std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>
+divide(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot) {
+  double x_pitch = 0.25, x_min = 0.0, x_max = 2.0; // 1.5~1.75 1.75~2.00 1.5~1.675
+  double y_min = -0.675, y_max = 0.675;
+  double z_min = -0.250, z_max = 2.000; // -0.3125, 2.0
+
   // Divide large cloud
-  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > vector_cloud;
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_vector;
   pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointXYZ tmp_p;
-  tmp_cloud->points.push_back(tmp_p);
-  vector_cloud.push_back(tmp_cloud);
 
+  for (int i = 0; i < (int)(x_max/x_min); i++) {
+    for (pcl::PointCloud<pcl::PointXYZ>::const_iterator itr = cloud_xyz_rot->begin();
+         itr != cloud_xyz_rot->end(); itr++) {
+      if (i*x_pitch < itr->x && itr->x < (i+1)*x_pitch) {
+        if (y_min < itr->y && itr->y < y_max) {
+          if (z_min < itr->z && itr->z < z_max) {
+            tmp_p.x = itr->x; tmp_p.y = itr->y; tmp_p.z = itr->z;
+            tmp_cloud->points.push_back(tmp_p);
+          }
+        }
+      }
+    }
+    cloud_vector.push_back(tmp_cloud);
+  }
+  // Publish
   // Create Polygon Marker
-
 }
 
 // function to publish series of polygons
