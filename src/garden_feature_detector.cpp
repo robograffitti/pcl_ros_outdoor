@@ -1,4 +1,4 @@
-#include <iostream> 
+#include <iostream>
 // using namespace std; // namespace for std::string and etc.
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -59,7 +59,38 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr reduce(const pcl::PointCloud<pcl::PointXYZ>:
   } return cloud_reduced_xyz;
 }
 
-std::vector<geometry_msgs::Point> point_vector(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_reduced) {
+// Separate into separate clouds
+std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr >
+separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot) {
+  double x_pitch = 0.25, x_min = 0.0, x_max = 2.0; // 1.5~1.75 1.75~2.00 1.5~1.675
+  double y_min = -0.675, y_max = 0.675;
+  double z_min = -0.250, z_max = 2.000; // -0.3125, 2.0
+
+  // Divide large cloud
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_vector;
+  // pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointXYZ tmp_p;
+
+  for (int i = 0; i < (int)(x_max/x_pitch); i++) {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    for (pcl::PointCloud<pcl::PointXYZ>::const_iterator itr = cloud_xyz_rot->begin();
+         itr != cloud_xyz_rot->end(); itr++) {
+      if (i*x_pitch < itr->x && itr->x < (i+1)*x_pitch) {
+        if (y_min < itr->y && itr->y < y_max) {
+          if (z_min < itr->z && itr->z < z_max) {
+            tmp_p.x = itr->x; tmp_p.y = itr->y; tmp_p.z = itr->z;
+            tmp_cloud->points.push_back(tmp_p);
+          }
+        }
+      }
+    }
+    cloud_vector.push_back(tmp_cloud);
+    // Publish tmp_cloud
+    // Create polygon
+  }
+}
+
+std::vector<geometry_msgs::Point> getPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_reduced) {
   double width_min = 2.0; // initialize with a constant
   double width_stitch = 4.0;
   geometry_msgs::Point p_s, p_m, p_e;
@@ -91,38 +122,8 @@ std::vector<geometry_msgs::Point> point_vector(pcl::PointCloud<pcl::PointXYZ>::P
     p_prev = &*itr;
   }
   // better to create own struct?
-  p_vector.push_back(p_s); p_vector.push_back(p_e); p_vector.push_back(p_m);
-  return p_vector;
-}
-
-// Separate into separate clouds
-std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>
-separate(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot) {
-  double x_pitch = 0.25, x_min = 0.0, x_max = 2.0; // 1.5~1.75 1.75~2.00 1.5~1.675
-  double y_min = -0.675, y_max = 0.675;
-  double z_min = -0.250, z_max = 2.000; // -0.3125, 2.0
-
-  // Divide large cloud
-  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_vector;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointXYZ tmp_p;
-
-  for (int i = 0; i < (int)(x_max/x_min); i++) {
-    for (pcl::PointCloud<pcl::PointXYZ>::const_iterator itr = cloud_xyz_rot->begin();
-         itr != cloud_xyz_rot->end(); itr++) {
-      if (i*x_pitch < itr->x && itr->x < (i+1)*x_pitch) {
-        if (y_min < itr->y && itr->y < y_max) {
-          if (z_min < itr->z && itr->z < z_max) {
-            tmp_p.x = itr->x; tmp_p.y = itr->y; tmp_p.z = itr->z;
-            tmp_cloud->points.push_back(tmp_p);
-          }
-        }
-      }
-    }
-    cloud_vector.push_back(tmp_cloud);
-    // Publish tmp_cloud
-    // Create polygon
-  }
+  p_vector.push_back(p_s); p_vector.push_back(p_m); p_vector.push_back(p_e);
+  return p_vector; // width_min calculated from p_vector.front and back
 }
 
 // function to publish series of polygons
@@ -278,14 +279,40 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   //     }
   //   }
   // }
-
   // A. Divide by range of x value : function returning cloud_reduced_xyz (cloud, x_min, x_max)
   // std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > cloud_xyz_rot_vector;
   // cloud_xyz_rot_vector = cloud_xyz_rot->points;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
-  cloud_reduced_xyz = reduce(cloud_xyz_rot, 1.50, 1.675, -0.675, 0.675, -0.3125, 2.0); // o(n) = n
 
-  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_vector = separate(cloud_xyz_rot);
+  // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_reduced_xyz (new pcl::PointCloud<pcl::PointXYZ>);
+  // cloud_reduced_xyz = reduce(cloud_xyz_rot, 1.50, 1.675, -0.675, 0.675, -0.3125, 2.0); // o(n) = n
+
+  // get separated cloud
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > cloud_separated = separate(cloud_xyz_rot);
+  std::cerr <<  "Error." << std::endl;
+  // const std::string cloud_separated_name = "cloud_separated";
+  // int count = 0;
+  // std::to_string();
+
+  pcl::PCLPointCloud2 cloud_pcl;
+  sensor_msgs::PointCloud2 cloud_ros;
+  pcl::toPCLPointCloud2(*cloud_separated.at(5), cloud_pcl);
+  pcl_conversions::fromPCL(cloud_pcl,cloud_ros);
+  cloud_ros.header.frame_id = "/base_link"; // odom -> /base_link
+  cloud_ros.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
+  pub_red.publish(cloud_ros);
+
+  // for (int i = 0; i < (int)cloud_separated.size(); i++) {
+  //   pcl::PointCloud<pcl::PointXYZ>::Ptr value = cloud_separated.at(i);
+  //   std::vector<geometry_msgs::Point> point__vector = point_vector(value); // 変数名と関数名を同じにしない！
+  // }
+  for (std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr >::const_iterator itr =
+         cloud_separated.begin(); itr != cloud_separated.end(); itr++) {
+    // pcl::PointCloud<pcl::PointXYZ>::Ptr itr_value (new pcl::PointCloud<pcl::PointXYZ>); const not rewritable
+    // itr_value = &*itr;
+    // itr_value->points;
+    std::vector<geometry_msgs::Point> point_vector = getPoints(*itr);
+  }
+
 
   // double y_mean, y_mean_old;
   // int i = 0; // loop counter
@@ -342,13 +369,13 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   p_vector.push_back(p_e);
   p_vector.push_back(p_m);
 
-  pcl::PCLPointCloud2 out_red;
-  pcl::toPCLPointCloud2(*cloud_reduced_xyz, out_red);
-  sensor_msgs::PointCloud2 output_red;
-  pcl_conversions::fromPCL(out_red, output_red);
-  output_red.header.frame_id = "/base_link"; // odom -> /base_link
-  output_red.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
-  pub_red.publish(output_red);
+  // pcl::PCLPointCloud2 out_red;
+  // pcl::toPCLPointCloud2(*cloud_reduced_xyz, out_red);
+  // sensor_msgs::PointCloud2 output_red;
+  // pcl_conversions::fromPCL(out_red, output_red);
+  // output_red.header.frame_id = "/base_link"; // odom -> /base_link
+  // output_red.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
+  // pub_red.publish(output_red);
 
   visualization_msgs::Marker texts; // TEXT_VIEW_FACING
   texts.header.frame_id = "/base_link"; // odom -> /base_link
