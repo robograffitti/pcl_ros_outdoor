@@ -45,9 +45,9 @@ ros::Publisher pub_polygon_array;
 // Separate into separate clouds and publish polygons
 std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > // use jsk_pcl_ros::PointsArray
 separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header header) {
-  double x_pitch = 0.5, x_min = 1.0, x_max = 4.0; // 1.5~1.75 1.75~2.00 1.5~1.675
+  double x_pitch = 0.25, x_min = 1.0, x_max = 3.0; // 1.5~1.75 1.75~2.00 1.5~1.675
   double y_min = -0.675, y_max = 0.675;
-  double z_min = -0.250, z_1 = 0.000, z_2 = 1.000, z_max = 2.000; // -0.3125, 2.0
+  double z_min = -0.250, z_1 = 0.000, z_2 = 1.000, z_max = 1.750; // -0.3125, 2.0
   pcl::PointXYZ pt_1, pt_2, pt_3, pt_4, pt_5, pt_6; // deprecate with polygon
 
   // Divide large cloud
@@ -64,7 +64,7 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
 
     geometry_msgs::Point32 tmp_p_up_0, tmp_p_up_1, tmp_p_up_2, tmp_p_down_0, tmp_p_down_1, tmp_p_down_2;
     pcl::PointXYZ tmp_p;
-    double width_tmp, width_min = 2.000;
+    double width_tmp, width_min = 2.000, width_min_bottom = 0.500;
     for (pcl::PointCloud<pcl::PointXYZ>::const_iterator itr = cloud_xyz_rot->begin();
          itr != cloud_xyz_rot->end(); itr++) {
       if ( (x_min + i*x_pitch) < itr->x && itr->x < (x_min + (i+1)*x_pitch) ) {
@@ -77,7 +77,7 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
                   width_tmp = sqrt(pow(fabs(tmp_p.x - itr->x), 2)
                                    + pow(fabs(tmp_p.y - itr->y), 2)
                                    + pow(fabs(tmp_p.z - itr->z), 2));
-                  if (width_tmp <= width_min) {
+                  if (width_min_bottom < width_tmp && width_tmp <= width_min) {
                     width_min = width_tmp; // create width_min array
                     tmp_p_down_0.x = tmp_p.x; tmp_p_down_0.y = tmp_p.y; tmp_p_down_0.z = tmp_p.z;
                     tmp_p_down_1.x = itr->x; tmp_p_down_1.y = itr->y; tmp_p_down_1.z = itr->z;
@@ -110,17 +110,31 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
       // Create polygon
     }
 
-    polygon.header = header;
+    cloud_vector.push_back(tmp_cloud);
+
     tmp_p_up_0.x = x_min + i*x_pitch - x_pitch/2;
     tmp_p_up_1.x = x_min + i*x_pitch - x_pitch/2;
     tmp_p_down_0.x = x_min + i*x_pitch - x_pitch/2;
     tmp_p_down_1.x = x_min + i*x_pitch - x_pitch/2;
-    polygon.polygon.points.push_back(tmp_p_up_0);
-    polygon.polygon.points.push_back(tmp_p_up_1);
-    polygon.polygon.points.push_back(tmp_p_down_1);
-    polygon.polygon.points.push_back(tmp_p_down_0);
-    cloud_vector.push_back(tmp_cloud);
+    if (tmp_p_up_0.y < tmp_p_up_1.y) {
+      polygon.polygon.points.push_back(tmp_p_up_0);
+      polygon.polygon.points.push_back(tmp_p_up_1);
+    }
+    if (tmp_p_up_0.y >= tmp_p_up_1.y) {
+      polygon.polygon.points.push_back(tmp_p_up_1);
+      polygon.polygon.points.push_back(tmp_p_up_0);
+    }
+    if (tmp_p_down_0.y < tmp_p_down_1.y) {
+      polygon.polygon.points.push_back(tmp_p_down_1);
+      polygon.polygon.points.push_back(tmp_p_down_0);
+    }
+    if (tmp_p_down_0.y >= tmp_p_down_1.y) {
+      polygon.polygon.points.push_back(tmp_p_down_0);
+      polygon.polygon.points.push_back(tmp_p_down_1);
+    }
+    polygon.header = header;
     polygon_array.polygons.push_back(polygon);
+
     std::cerr << "count:" << i << ", " << "size:" << cloud_vector.at(i)->size() << std::endl;
     std::cerr << "width_min:" << width_min << std::endl;
 
