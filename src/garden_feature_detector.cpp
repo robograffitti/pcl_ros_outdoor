@@ -60,7 +60,7 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
   for (int i = 0; i < (int)(x_max/x_pitch); i++) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     geometry_msgs::PolygonStamped polygon;
-    geometry_msgs::Point32 tmp_p_up_0, tmp_p_up_1, tmp_p_down_0, tmp_p_down_1;
+    geometry_msgs::Point32 tmp_p_up_0, tmp_p_up_1, tmp_p_up_2, tmp_p_down_0, tmp_p_down_1, tmp_p_down_2;
     pcl::PointXYZ tmp_p;
     double width_tmp, width_min = 2.000;
     for (pcl::PointCloud<pcl::PointXYZ>::const_iterator itr = cloud_xyz_rot->begin();
@@ -79,6 +79,9 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
                     width_min = width_tmp; // create width_min array
                     tmp_p_down_0.x = tmp_p.x; tmp_p_down_0.y = tmp_p.y; tmp_p_down_0.z = tmp_p.z;
                     tmp_p_down_1.x = itr->x; tmp_p_down_1.y = itr->y; tmp_p_down_1.z = itr->z;
+                    tmp_p_down_2.x = tmp_p.x; // ignore adding sqrt
+                    tmp_p_down_2.y = tmp_p.y + sqrt(pow(fabs(tmp_p.y - itr->y), 2)) / 2;
+                    tmp_p_down_2.z = tmp_p.z;
                   }
                 }
                 if (z_2 < itr->z) {
@@ -89,6 +92,9 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
                     width_min = width_tmp;
                     tmp_p_up_0.x = tmp_p.x; tmp_p_up_0.y = tmp_p.y; tmp_p_up_0.z = tmp_p.z;
                     tmp_p_up_1.x = itr->x; tmp_p_up_1.y = itr->y; tmp_p_up_1.z = itr->z;
+                    tmp_p_up_2.x = tmp_p.x; // ignore adding sqrt
+                    tmp_p_up_2.y = tmp_p.y + sqrt(pow(fabs(tmp_p.y - itr->y), 2)) / 2;
+                    tmp_p_up_2.z = tmp_p.z;
                   }
                 }
               }
@@ -109,8 +115,37 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
     polygon.polygon.points.push_back(tmp_p_down_0);
     cloud_vector.push_back(tmp_cloud);
     polygon_array.polygons.push_back(polygon);
-
     std::cerr << "count:" << i << ", " << "size:" << cloud_vector.at(i)->size() << std::endl;
+    std::cerr << "width_min:" << width_min << std::endl;
+
+    // Marker
+    visualization_msgs::Marker texts; // TEXT_VIEW_FACING
+    texts.header = header;
+    texts.ns = "text"; // namespace + ID
+    texts.id = i;
+    texts.action = visualization_msgs::Marker::ADD;
+    texts.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+
+    texts.pose.position.x = tmp_p_up_2.x;
+    texts.pose.position.y = tmp_p_up_2.y;
+    texts.pose.position.z = tmp_p_up_2.z;
+    texts.pose.orientation.x = 0.0;
+    texts.pose.orientation.y = 0.0;
+    texts.pose.orientation.z = 0.0;
+    texts.pose.orientation.w = 1.0;
+    texts.scale.x = 0.2;
+    texts.scale.y = 0.2;
+    texts.scale.z = 0.2;
+    texts.color.r = 1.0f;
+    texts.color.g = 1.0f;
+    texts.color.b = 1.0f;
+    texts.color.a = 1.0;
+
+    std::ostringstream strs; strs << width_min;
+    std::string str = strs.str();
+    texts.text = str;
+    pub_marker.publish(texts);
+
   }
   pub_polygon_array.publish(polygon_array); // error
   return cloud_vector;
