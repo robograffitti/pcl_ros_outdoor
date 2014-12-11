@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 // using namespace std; // namespace for std::string and etc.
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -71,17 +72,18 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
     texts.pose.orientation.y = 0.0;
     texts.pose.orientation.z = 0.0;
     texts.pose.orientation.w = 1.0;
-    texts.scale.x = 0.2;
-    texts.scale.y = 0.2;
-    texts.scale.z = 0.2;
+    texts.scale.x = 0.125;
+    texts.scale.y = 0.125;
+    texts.scale.z = 0.125;
     texts.color.r = 1.0f;
-    texts.color.g = 1.0f;
-    texts.color.b = 1.0f;
+    texts.color.g = 0.0f;
+    texts.color.b = 0.0f;
     texts.color.a = 1.0;
 
     geometry_msgs::Point32 tmp_p_up_0, tmp_p_up_1, tmp_p_up_2, tmp_p_down_0, tmp_p_down_1, tmp_p_down_2;
     pcl::PointXYZ tmp_p;
-    double width_tmp, width_min = 2.000, width_min_bottom = 0.500;
+    double width_tmp, width_min_up = 2.000, width_min_down = 4.000;
+    double width_min_bottom = 0.500, width_min_top = 0.200;
     for (pcl::PointCloud<pcl::PointXYZ>::const_iterator itr = cloud_xyz_rot->begin();
          itr != cloud_xyz_rot->end(); itr++) {
       if ( (x_min + i*x_pitch) < itr->x && itr->x < (x_min + (i+1)*x_pitch) ) {
@@ -94,8 +96,8 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
                   width_tmp = sqrt(pow(fabs(tmp_p.x - itr->x), 2)
                                    + pow(fabs(tmp_p.y - itr->y), 2)
                                    + pow(fabs(tmp_p.z - itr->z), 2));
-                  if (width_min_bottom < width_tmp && width_tmp <= width_min) {
-                    width_min = width_tmp; // create width_min array
+                  if (width_min_bottom < width_tmp && width_tmp <= width_min_down) {
+                    width_min_down = width_tmp; // create width_min array
                     tmp_p_down_0.x = tmp_p.x; tmp_p_down_0.y = tmp_p.y;
                     tmp_p_down_0.z = (tmp_p.z + itr->z) / 2;
                     tmp_p_down_1.x = itr->x; tmp_p_down_1.y = itr->y;
@@ -109,8 +111,8 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
                   width_tmp = sqrt(pow(fabs(tmp_p.x - itr->x), 2)
                                    + pow(fabs(tmp_p.y - itr->y), 2)
                                    + pow(fabs(tmp_p.z - itr->z), 2));
-                  if (width_tmp <= width_min) {
-                    width_min = width_tmp;
+                  if (width_tmp <= width_min_down) {
+                    width_min_up = width_tmp;
                     tmp_p_up_0.x = tmp_p.x; tmp_p_up_0.y = tmp_p.y;
                     tmp_p_up_0.z = (tmp_p.z + itr->z) / 2;
                     tmp_p_up_1.x = itr->x; tmp_p_up_1.y = itr->y;
@@ -157,14 +159,29 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
     polygon_array.polygons.push_back(polygon);
 
     std::cerr << "count:" << i << ", " << "size:" << cloud_vector.at(i)->size() << std::endl;
-    std::cerr << "width_min:" << width_min << std::endl;
+    std::cerr << "width_min_up:" << width_min_up << std::endl;
+    std::cerr << "width_min_down:" << width_min_down << std::endl;
 
-    texts.id = i;
+    texts.id = 2*i;
     texts.pose.position.x = tmp_p_up_0.x;
     texts.pose.position.y = tmp_p_up_2.y;
     texts.pose.position.z = tmp_p_up_2.z;
-    std::ostringstream strs; strs << width_min;
+
+    std::ostringstream strs;
+    strs << width_min_up;
     std::string str = strs.str();
+    texts.text = str;
+    pub_marker.publish(texts);
+
+    texts.id = 2*i + 1;
+    texts.pose.position.x = tmp_p_down_0.x;
+    texts.pose.position.y = tmp_p_down_2.y;
+    texts.pose.position.z = tmp_p_down_2.z;
+
+    strs.str("");
+    strs.clear(std::stringstream::goodbit);
+    strs << width_min_down;
+    str = strs.str();
     texts.text = str;
     pub_marker.publish(texts);
 
@@ -172,11 +189,6 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
   pub_polygon_array.publish(polygon_array); // error
   return cloud_vector;
 }
-
-// function to publish series of polygons
-// pcl::PointCloud<pcl::PointXYZ>::Ptr reduce(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_zyz_rot) {
-// return NULL;
-//  }
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   // std::cerr << "in cloud_cb" << std::endl;
@@ -302,7 +314,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   pcl::PCLPointCloud2 cloud_separated_pcl;
   sensor_msgs::PointCloud2 cloud_separated_ros;
 
-  pcl::toPCLPointCloud2(*vector_cloud_separated_xyz.at(4), cloud_separated_pcl);
+  pcl::toPCLPointCloud2(*vector_cloud_separated_xyz.at(1), cloud_separated_pcl);
   pcl_conversions::fromPCL(cloud_separated_pcl, cloud_separated_ros);
   cloud_separated_ros.header.frame_id = "/base_link"; // odom -> /base_link
   cloud_separated_ros.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
