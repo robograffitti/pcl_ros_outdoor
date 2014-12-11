@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 // using namespace std; // namespace for std::string and etc.
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -45,9 +46,9 @@ ros::Publisher pub_polygon_array;
 // Separate into separate clouds and publish polygons
 std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > // use jsk_pcl_ros::PointsArray
 separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header header) {
-  double x_pitch = 0.5, x_min = 1.0, x_max = 4.0; // 1.5~1.75 1.75~2.00 1.5~1.675
+  double x_pitch = 0.25, x_min = 1.0, x_max = 3.0; // 1.5~1.75 1.75~2.00 1.5~1.675
   double y_min = -0.675, y_max = 0.675;
-  double z_min = -0.250, z_1 = 0.000, z_2 = 1.000, z_max = 2.000; // -0.3125, 2.0
+  double z_min = -0.250, z_1 = 0.000, z_2 = 1.000, z_max = 1.750; // -0.3125, 2.0
   pcl::PointXYZ pt_1, pt_2, pt_3, pt_4, pt_5, pt_6; // deprecate with polygon
 
   // Divide large cloud
@@ -60,11 +61,29 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
   for (int i = 0; i < (int)( (x_max - x_min) / x_pitch ); i++) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     geometry_msgs::PolygonStamped polygon;
-    visualization_msgs::Marker texts; // TEXT_VIEW_FACING
+    visualization_msgs::Marker texts, line_strip; // TEXT_VIEW_FACING
+
+    texts.header = header;
+    texts.ns = "text"; // namespace + ID
+    texts.action = visualization_msgs::Marker::ADD;
+    texts.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+
+    texts.pose.orientation.x = 0.0;
+    texts.pose.orientation.y = 0.0;
+    texts.pose.orientation.z = 0.0;
+    texts.pose.orientation.w = 1.0;
+    texts.scale.x = 0.125;
+    texts.scale.y = 0.125;
+    texts.scale.z = 0.125;
+    texts.color.r = 1.0f;
+    texts.color.g = 0.0f;
+    texts.color.b = 0.0f;
+    texts.color.a = 1.0;
 
     geometry_msgs::Point32 tmp_p_up_0, tmp_p_up_1, tmp_p_up_2, tmp_p_down_0, tmp_p_down_1, tmp_p_down_2;
     pcl::PointXYZ tmp_p;
-    double width_tmp, width_min = 2.000;
+    double width_tmp, width_min_up = 2.000, width_min_down = 4.000;
+    double width_min_bottom = 0.500, width_min_top = 0.200;
     for (pcl::PointCloud<pcl::PointXYZ>::const_iterator itr = cloud_xyz_rot->begin();
          itr != cloud_xyz_rot->end(); itr++) {
       if ( (x_min + i*x_pitch) < itr->x && itr->x < (x_min + (i+1)*x_pitch) ) {
@@ -77,26 +96,30 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
                   width_tmp = sqrt(pow(fabs(tmp_p.x - itr->x), 2)
                                    + pow(fabs(tmp_p.y - itr->y), 2)
                                    + pow(fabs(tmp_p.z - itr->z), 2));
-                  if (width_tmp <= width_min) {
-                    width_min = width_tmp; // create width_min array
-                    tmp_p_down_0.x = tmp_p.x; tmp_p_down_0.y = tmp_p.y; tmp_p_down_0.z = tmp_p.z;
-                    tmp_p_down_1.x = itr->x; tmp_p_down_1.y = itr->y; tmp_p_down_1.z = itr->z;
+                  if (width_min_bottom < width_tmp && width_tmp <= width_min_down) {
+                    width_min_down = width_tmp; // create width_min array
+                    tmp_p_down_0.x = tmp_p.x; tmp_p_down_0.y = tmp_p.y;
+                    tmp_p_down_0.z = (tmp_p.z + itr->z) / 2;
+                    tmp_p_down_1.x = itr->x; tmp_p_down_1.y = itr->y;
+                    tmp_p_down_1.z = (tmp_p.z + itr->z) / 2;
                     tmp_p_down_2.x = tmp_p.x; // ignore adding sqrt
                     tmp_p_down_2.y = tmp_p.y + sqrt(pow(fabs(tmp_p.y - itr->y), 2)) / 2;
-                    tmp_p_down_2.z = tmp_p.z;
+                    tmp_p_down_2.z = (tmp_p.z + itr->z) / 2;
                   }
                 }
                 if (z_2 < itr->z) {
                   width_tmp = sqrt(pow(fabs(tmp_p.x - itr->x), 2)
                                    + pow(fabs(tmp_p.y - itr->y), 2)
                                    + pow(fabs(tmp_p.z - itr->z), 2));
-                  if (width_tmp <= width_min) {
-                    width_min = width_tmp;
-                    tmp_p_up_0.x = tmp_p.x; tmp_p_up_0.y = tmp_p.y; tmp_p_up_0.z = tmp_p.z;
-                    tmp_p_up_1.x = itr->x; tmp_p_up_1.y = itr->y; tmp_p_up_1.z = itr->z;
+                  if (width_tmp <= width_min_down) {
+                    width_min_up = width_tmp;
+                    tmp_p_up_0.x = tmp_p.x; tmp_p_up_0.y = tmp_p.y;
+                    tmp_p_up_0.z = (tmp_p.z + itr->z) / 2;
+                    tmp_p_up_1.x = itr->x; tmp_p_up_1.y = itr->y;
+                    tmp_p_up_1.z = (tmp_p.z + itr->z) / 2;
                     tmp_p_up_2.x = tmp_p.x; // ignore adding sqrt
                     tmp_p_up_2.y = tmp_p.y + sqrt(pow(fabs(tmp_p.y - itr->y), 2)) / 2;
-                    tmp_p_up_2.z = tmp_p.z;
+                    tmp_p_up_2.z = (tmp_p.z + itr->z) / 2;
                   }
                 }
               }
@@ -110,43 +133,55 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
       // Create polygon
     }
 
-    polygon.header = header;
+    cloud_vector.push_back(tmp_cloud);
+
     tmp_p_up_0.x = x_min + i*x_pitch - x_pitch/2;
     tmp_p_up_1.x = x_min + i*x_pitch - x_pitch/2;
     tmp_p_down_0.x = x_min + i*x_pitch - x_pitch/2;
     tmp_p_down_1.x = x_min + i*x_pitch - x_pitch/2;
-    polygon.polygon.points.push_back(tmp_p_up_0);
-    polygon.polygon.points.push_back(tmp_p_up_1);
-    polygon.polygon.points.push_back(tmp_p_down_1);
-    polygon.polygon.points.push_back(tmp_p_down_0);
-    cloud_vector.push_back(tmp_cloud);
+    if (tmp_p_up_0.y < tmp_p_up_1.y) {
+      polygon.polygon.points.push_back(tmp_p_up_0);
+      polygon.polygon.points.push_back(tmp_p_up_1);
+    }
+    if (tmp_p_up_0.y >= tmp_p_up_1.y) {
+      polygon.polygon.points.push_back(tmp_p_up_1);
+      polygon.polygon.points.push_back(tmp_p_up_0);
+    }
+    if (tmp_p_down_0.y < tmp_p_down_1.y) {
+      polygon.polygon.points.push_back(tmp_p_down_1);
+      polygon.polygon.points.push_back(tmp_p_down_0);
+    }
+    if (tmp_p_down_0.y >= tmp_p_down_1.y) {
+      polygon.polygon.points.push_back(tmp_p_down_0);
+      polygon.polygon.points.push_back(tmp_p_down_1);
+    }
+    polygon.header = header;
     polygon_array.polygons.push_back(polygon);
+
     std::cerr << "count:" << i << ", " << "size:" << cloud_vector.at(i)->size() << std::endl;
-    std::cerr << "width_min:" << width_min << std::endl;
+    std::cerr << "width_min_up:" << width_min_up << std::endl;
+    std::cerr << "width_min_down:" << width_min_down << std::endl;
 
-    texts.header = header;
-    texts.ns = "text"; // namespace + ID
-    texts.id = i;
-    texts.action = visualization_msgs::Marker::ADD;
-    texts.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-
+    texts.id = 2*i;
     texts.pose.position.x = tmp_p_up_0.x;
     texts.pose.position.y = tmp_p_up_2.y;
     texts.pose.position.z = tmp_p_up_2.z;
-    texts.pose.orientation.x = 0.0;
-    texts.pose.orientation.y = 0.0;
-    texts.pose.orientation.z = 0.0;
-    texts.pose.orientation.w = 1.0;
-    texts.scale.x = 0.2;
-    texts.scale.y = 0.2;
-    texts.scale.z = 0.2;
-    texts.color.r = 1.0f;
-    texts.color.g = 1.0f;
-    texts.color.b = 1.0f;
-    texts.color.a = 1.0;
 
-    std::ostringstream strs; strs << width_min;
+    std::ostringstream strs;
+    strs << width_min_up;
     std::string str = strs.str();
+    texts.text = str;
+    pub_marker.publish(texts);
+
+    texts.id = 2*i + 1;
+    texts.pose.position.x = tmp_p_down_0.x;
+    texts.pose.position.y = tmp_p_down_2.y;
+    texts.pose.position.z = tmp_p_down_2.z;
+
+    strs.str("");
+    strs.clear(std::stringstream::goodbit);
+    strs << width_min_down;
+    str = strs.str();
     texts.text = str;
     pub_marker.publish(texts);
 
@@ -154,61 +189,6 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
   pub_polygon_array.publish(polygon_array); // error
   return cloud_vector;
 }
-
-                    // get points
-                    // pt_1.x = tmp_p.x; pt_1.x = tmp_p.y; pt_1.z = tmp_p.z;
-                    // pt_2.x = itr->x; pt_2.y = itr->y; pt_2.z = itr->z;
-                    // pt_5.x = tmp_p.x; // ignore adding sqrt
-                    // pt_5.y = tmp_p.y + sqrt(pow(fabs(tmp_p.y - itr->y), 2)) / 2;
-                    // pt_5.z = tmp_p.z;
-                    // get points
-                    // pt_3.x = tmp_p.x; pt_3.x = tmp_p.y; pt_3.z = tmp_p.z;
-                    // pt_4.x = itr->x; pt_4.y = itr->y; pt_4.z = itr->z;
-                    // pt_6.x = tmp_p.x; // ignore adding sqrt
-                    // pt_6.y = tmp_p.y + sqrt(pow(fabs(tmp_p.y - itr->y), 2)) / 2;
-                    // pt_6.z = tmp_p.z;
-
-// deprecating?
-std::vector<geometry_msgs::Point> getPoints(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_reduced) {
-  double width_min = 2.0; // initialize with a constant
-  double width_stitch = 4.0;
-  geometry_msgs::Point p_s, p_m, p_e;
-  std::vector<geometry_msgs::Point> p_vector;
-  pcl::PointXYZ *p_prev; double tmp_length;
-  // p_prev.x = 0; p_prev.y = 0; p_prev.z = 0;
-
-  for (pcl::PointCloud<pcl::PointXYZ>::iterator itr = cloud_xyz_reduced->begin();
-       itr != cloud_xyz_reduced->end(); itr++) {
-    // initialize p_prev
-    if ( itr == cloud_xyz_reduced->begin() ) {
-      p_prev = &*itr;
-      continue;
-    }
-    // get distance and p_vector
-    if ( (p_prev->y < 0 && 0 <= itr->y) || (itr->y < 0 && 0 <= p_prev->y) ) {
-      tmp_length = sqrt(pow(fabs(p_prev->x - itr->x), 2)
-                        + pow(fabs(p_prev->y - itr->y), 2)
-                        + pow(fabs(p_prev->z - itr->z), 2));
-      if (tmp_length <= width_min) {
-        width_min = tmp_length;
-        p_s.x = p_prev->x; p_s.y = p_prev->y; p_s.z = p_prev->z;
-        p_e.x = itr->x; p_e.y = itr->y; p_e.z = itr->z;
-        p_m.x = p_prev->x; // ignore adding sqrt
-        p_m.y = p_prev->y + sqrt(pow(fabs(p_prev->y - itr->y), 2)) / 2;
-        p_m.z = p_prev->z;
-      }
-    }
-    p_prev = &*itr;
-  }
-  // better to create own struct?
-  p_vector.push_back(p_s); p_vector.push_back(p_m); p_vector.push_back(p_e);
-  return p_vector; // width_min calculated from p_vector.front and back
-}
-
-// function to publish series of polygons
-// pcl::PointCloud<pcl::PointXYZ>::Ptr reduce(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_zyz_rot) {
-// return NULL;
-//  }
 
 void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   // std::cerr << "in cloud_cb" << std::endl;
@@ -329,88 +309,34 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   pub_rot.publish(cloud_rot_ros);
 
   /* 6. Point Cloud Reduction */
-  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > vector_cloud_separated_xyz = separate(cloud_xyz_rot, header);
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr >
+    vector_cloud_separated_xyz = separate(cloud_xyz_rot, header);
   pcl::PCLPointCloud2 cloud_separated_pcl;
   sensor_msgs::PointCloud2 cloud_separated_ros;
-  int count = 0;
 
-  pcl::toPCLPointCloud2(*vector_cloud_separated_xyz.at(4), cloud_separated_pcl); // segmentation fault
-  // std::cerr <<  "Error." << std::endl;
+  pcl::toPCLPointCloud2(*vector_cloud_separated_xyz.at(1), cloud_separated_pcl);
   pcl_conversions::fromPCL(cloud_separated_pcl, cloud_separated_ros);
   cloud_separated_ros.header.frame_id = "/base_link"; // odom -> /base_link
   cloud_separated_ros.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
   pub_red.publish(cloud_separated_ros);
 
-  std::vector<geometry_msgs::Point> point_vector; // 型指定したくない
-  for (std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr >::const_iterator itr =
-         vector_cloud_separated_xyz.begin(); itr != vector_cloud_separated_xyz.end(); itr++) {
-    // pcl::PointCloud<pcl::PointXYZ>::Ptr itr_value (new pcl::PointCloud<pcl::PointXYZ>); const not rewritable
-    // itr_value = &*itr;
-    // itr_value->points;
-    point_vector = getPoints(*itr); // 3つの点が一つの要素になって入っている配列をゲットしたい
-  }
-
-  // for (int i = 0; i < (int)cloud_separated.size(); i++) {
-  //   pcl::PointCloud<pcl::PointXYZ>::Ptr value = cloud_separated.at(i);
-  //   std::vector<geometry_msgs::Point> point__vector = point_vector(value); // 変数名と関数名を同じにしない！
-  // }
-
-  // visualization_msgs::Marker texts; // TEXT_VIEW_FACING
-  // texts.header.frame_id = "/base_link"; // odom -> /base_link
-  // texts.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
-  // texts.ns = "text"; // namespace + ID
-  // texts.id = 0;
-  // texts.action = visualization_msgs::Marker::ADD;
-  // texts.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-
-  // texts.pose.position.x = p_m.x;
-  // texts.pose.position.y = p_m.y;
-  // texts.pose.position.z = 1.00;
-  // texts.pose.orientation.x = 0.0;
-  // texts.pose.orientation.y = 0.0;
-  // texts.pose.orientation.z = 0.0;
-  // texts.pose.orientation.w = 1.0;
-
-  // texts.scale.x = 0.2;
-  // texts.scale.y = 0.2;
-  // texts.scale.z = 0.2;
-  // texts.color.r = 1.0f;
-  // texts.color.g = 1.0f;
-  // texts.color.b = 1.0f;
-  // texts.color.a = 1.0;
-
-  // setText
-  // std::ostringstream strs; strs << width_min;
-  // std::string str = strs.str();
-  // texts.text = str;
-  // pub_marker.publish(texts);
-
   // setMarker
-  visualization_msgs::Marker width_min_line;
-  width_min_line.header.frame_id = "/base_link";
-  width_min_line.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
-  width_min_line.ns = "width_min";
-  width_min_line.action = visualization_msgs::Marker::ADD;
-  width_min_line.type = visualization_msgs::Marker::LINE_STRIP;
-  width_min_line.pose.orientation.w = 1.0;
-  width_min_line.id = 0;
-
-  width_min_line.scale.x = 0.025;
-  width_min_line.color.r = 0.0f;
-  width_min_line.color.g = 1.0f;
-  width_min_line.color.b = 0.0f;
-  width_min_line.color.a = 1.0;
-
-  // std::cerr << "width_min = " << width_min << std::endl
-  //           << "width_stitch = " << width_stitch << std::endl
-  //           << "point inbetween = "  << std::endl
-  //           << "(" << p_s.x << ", " << p_s.y << ", " << p_s.z << ")" << std::endl
-  //           << "(" << p_e.x << ", " << p_e.y << ", " << p_e.z << ")" << std::endl
-  //           << "(" << p_m.x << ", " << p_m.y << ", " << p_m.z << ")" << std::endl;
-
-  width_min_line.points.push_back(point_vector.at(0));
-  width_min_line.points.push_back(point_vector.at(2));
-  pub_marker.publish(width_min_line);
+  // visualization_msgs::Marker width_min_line;
+  // width_min_line.header.frame_id = "/base_link";
+  // width_min_line.header.stamp = input->header.stamp; // ros::Time::now() -> header.stamp
+  // width_min_line.ns = "width_min";
+  // width_min_line.action = visualization_msgs::Marker::ADD;
+  // width_min_line.type = visualization_msgs::Marker::LINE_STRIP;
+  // width_min_line.pose.orientation.w = 1.0;
+  // width_min_line.id = 0;
+  // width_min_line.scale.x = 0.025;
+  // width_min_line.color.r = 0.0f;
+  // width_min_line.color.g = 1.0f;
+  // width_min_line.color.b = 0.0f;
+  // width_min_line.color.a = 1.0;
+  // width_min_line.points.push_back(point_vector.at(0));
+  // width_min_line.points.push_back(point_vector.at(2));
+  // pub_marker.publish(width_min_line);
 
   // /* 6. Visualize center line */
   // visualization_msgs::Marker line_strip;
