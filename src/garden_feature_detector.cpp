@@ -34,13 +34,11 @@ ros::Publisher pub_marker;
 ros::Publisher pub_polygon_array;
 
 // Global Variables
-//
 // 1. How to avoid hard-coding a topic name? (use parameters, etc.)
 // 2. For research, refering to existing equation,
 // explain how parameter value is defined.
 // 3. Use nodelet to devide this process into threads
-
-// Replace this function with SVM linear division
+// Replace this function with SVM linear division (or SegmentDifferences?)
 // rename divide to reduce... ?
 
 // Separate into separate clouds and publish polygons
@@ -220,10 +218,11 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
   seg.setOptimizeCoefficients(true); // Optional
-  seg.setModelType(pcl::SACMODEL_PLANE); // Mandatory
+  seg.setModelType(pcl::SACMODEL_PLANE); // Use SACMODEL_PERPENDICULAR_PLANE instead
   seg.setMethodType(pcl::SAC_RANSAC);
-  seg.setMaxIterations (1000); // added
+  seg.setMaxIterations (1000); // N in RANSAC
   seg.setDistanceThreshold(0.05); // default: 0.02 // 閾値（しきい値）
+  // minimum number of points calculated from N and distanceThres
 
   // convert from PointCloud2 to PointXYZ
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_voxel_xyz (new pcl::PointCloud<pcl::PointXYZ>);
@@ -231,16 +230,21 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
 
   // RANSAC application
   seg.setInputCloud(cloud_voxel_xyz);
-  seg.segment(*inliers, *coefficients);
+  seg.segment(*inliers, *coefficients); // values are empty at beginning
 
   // inliers.indices have array index of the points which are included as inliers
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane_xyz (new pcl::PointCloud<pcl::PointXYZ>);
   for (std::vector<int>::const_iterator pit = inliers->indices.begin ();
        pit != inliers->indices.end (); pit++) {
-    cloud_plane_xyz->points.push_back (cloud_voxel_xyz->points[*pit]);
+    cloud_plane_xyz->points.push_back(cloud_voxel_xyz->points[*pit]);
   }
+  // Organized as an image-structure
   cloud_plane_xyz->width = cloud_plane_xyz->points.size ();
   cloud_plane_xyz->height = 1;
+
+  /* insert code to set arbitary frame_id setting
+   such as frame_id ="/assemble_cloud_1"
+  with respect to "/odom or /base_link" */
 
   // Conversions: PointCloud<T>, PCLPointCloud2, sensor_msgs::PointCloud2
   pcl::PCLPointCloud2 cloud_plane_pcl;
@@ -275,7 +279,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   points.color.a = 1.0;
 
   geometry_msgs::Point p_0, p_1;
-  p_0.x = 0; p_0.y = 0; p_0.z = 0;
+  p_0.x = 0; p_0.y = 0; p_0.z = 0; // get from tf
   p_1.x = eigen_vectors(0,0);
   p_1.y = eigen_vectors(0,1); // always negative
   std::cerr << "y = " << eigen_vectors(0,1) << std::endl;
@@ -301,7 +305,6 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::fromPCLPointCloud2(*cloudPtr, *cloud_xyz); // from PointCloud2 to PointXYZ
   pcl::transformPointCloud(*cloud_xyz, *cloud_xyz_rot, rot_z); // original, transformed, transformation
-
   pcl::PCLPointCloud2 cloud_rot_pcl;
   sensor_msgs::PointCloud2 cloud_rot_ros;
   pcl::toPCLPointCloud2(*cloud_xyz_rot, cloud_rot_pcl);
@@ -347,13 +350,11 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   // line_strip.type = visualization_msgs::Marker::LINE_STRIP;
   // line_strip.pose.orientation.w = 1.0;
   // line_strip.id = 0; // set id
-
   // line_strip.scale.x = 0.05;
   // line_strip.color.r = 1.0f;
   // line_strip.color.g = 0.0f;
   // line_strip.color.b = 0.0f;
   // line_strip.color.a = 1.0;
-
   // // geometry_msgs::Point p_stitch, p_min;
   // p_s.x = 0; p_s.y = 0; p_s.z = 0;
   // p_e.x = p_m.x; p_e.y = p_m.y; p_e.z = 0;
