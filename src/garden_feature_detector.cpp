@@ -47,7 +47,7 @@ ros::Publisher pub_polygon_array;
 std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > // use jsk_pcl_ros::PointsArray
 separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header header) {
   double x_pitch = 0.25, x_min = 1.0, x_max = 3.0; // 1.5~1.75 1.75~2.00 1.5~1.675
-  double y_min = -0.675, y_max = 0.675;
+  double y_min = -0.75, y_max = 0.75;
   double z_min = -0.250, z_1 = 0.000, z_2 = 1.000, z_max = 1.750; // -0.3125, 2.0
   pcl::PointXYZ pt_1, pt_2, pt_3, pt_4, pt_5, pt_6; // deprecate with polygon
 
@@ -269,9 +269,9 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   points.scale.x = 0.05;
   points.scale.y = 0.05;
   points.scale.z = 0.05;
-  points.color.g = 0.25f;
-  points.color.r = 0.25f;
-  points.color.b = 1.0f;
+  points.color.g = 1.0f;
+  points.color.r = 0.0f;
+  points.color.b = 0.0f;
   points.color.a = 1.0;
 
   geometry_msgs::Point p_0, p_1;
