@@ -25,7 +25,6 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/common/pca.h>
-// #include <pcl/common/angles.h>
 
 ros::Publisher pub_voxel; // voxel cloud, pub_voxel
 ros::Publisher pub_plane; // plane cloud, pub_planelane
@@ -221,14 +220,9 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
   seg.setOptimizeCoefficients(true); // Optional
   seg.setModelType(pcl::SACMODEL_PERPENDICULAR_PLANE); // Use SACMODEL_PERPENDICULAR_PLANE instead
   seg.setMethodType(pcl::SAC_RANSAC);
-
-  // minimum number of points calculated from N and distanceThres
   seg.setMaxIterations (1000); // N in RANSAC
   seg.setDistanceThreshold(0.05); // default: 0.02 // 閾値（しきい値）
-
-  // param for perpendicular
-  seg.setAxis(Eigen::Vector3f (0.0, 0.0, 1.0));
-  seg.setEpsAngle(deg2rad (15));
+  // minimum number of points calculated from N and distanceThres
 
   // convert from PointCloud2 to PointXYZ
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_voxel_xyz (new pcl::PointCloud<pcl::PointXYZ>);
