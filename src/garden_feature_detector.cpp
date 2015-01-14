@@ -226,11 +226,11 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &input) {
 
   // minimum number of points calculated from N and distanceThres
   seg.setMaxIterations (1000); // N in RANSAC
-  seg.setDistanceThreshold(0.05); // default: 0.02 // 閾値（しきい値）
+  seg.setDistanceThreshold(0.025); // 0.01 - 0.05 default: 0.02 // 閾値（しきい値）
 
   // param for perpendicular
   seg.setAxis(Eigen::Vector3f (0.0, 0.0, 1.0));
-  seg.setEpsAngle(pcl::deg2rad (15.0f));
+  seg.setEpsAngle(pcl::deg2rad (5.0f));
 
   // convert from PointCloud2 to PointXYZ
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_voxel_xyz (new pcl::PointCloud<pcl::PointXYZ>);
