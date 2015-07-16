@@ -5,11 +5,13 @@ project(pcl_ros_outdoor)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  pcl_conversions
-  pcl_ros
+  rosconsole
   roscpp
   sensor_msgs
-  rosconsole
+  pcl_conversions
+  pcl_ros
+  # perception_pcl
+  # jsk_recognition
 )
 
 ## System dependencies are found with CMake's conventions

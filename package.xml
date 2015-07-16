@@ -37,20 +37,25 @@
   <!--   <run_depend>message_runtime</run_depend> -->
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
-  <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>pcl_conversions</build_depend>
-  <build_depend>pcl_ros</build_depend>
-  <build_depend>roscpp</build_depend>
-  <build_depend>rosconsole</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>libpcl-all-dev</build_depend>
 
-  <run_depend>pcl_conversions</run_depend>
-  <run_depend>pcl_ros</run_depend>
-  <run_depend>roscpp</run_depend>
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>libpcl-1.7-all</build_depend>
+  <build_depend>rosconsole</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>pcl_conversions</build_depend>
+  <!-- <build_depend>perception_pcl</build_depend> -->
+  <!-- <build_depend>jsk_recognition</build_depend> -->
+
+  <run_depend>libpcl-1.7-all</run_depend>
   <run_depend>rosconsole</run_depend>
+  <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
-  <run_depend>libpcl-all</run_depend>
+  <run_depend>perception_pcl</run_depend>
+  <run_depend>pcl_ros</run_depend>
+  <run_depend>pcl_conversions</run_depend>
+  <run_depend>jsk_recognition</run_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
