@@ -9,8 +9,8 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PolygonStamped.h>
 #include <visualization_msgs/Marker.h>
-#include <jsk_pcl_ros/PointsArray.h> // point cloud array
-#include <jsk_pcl_ros/PolygonArray.h>
+#include <jsk_recognition_msgs/PointsArray.h> // point cloud array
+#include <jsk_recognition_msgs/PolygonArray.h>
 
 // PCL related
 #include <pcl_conversions/pcl_conversions.h>
@@ -44,7 +44,7 @@ ros::Publisher pub_polygon_array;
 // rename divide to reduce... ?
 
 // Separate into separate clouds and publish polygons
-std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > // use jsk_pcl_ros::PointsArray
+std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr > // use jsk_recognition_msgs::PointsArray
 separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header header) {
   double x_pitch = 0.25, x_min = 1.0, x_max = 3.0; // 1.5~1.75 1.75~2.00 1.5~1.675
   double y_min = -0.75, y_max = 0.75;
@@ -56,7 +56,7 @@ separate(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz_rot, std_msgs::Header hea
   // pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud (new pcl::PointCloud<pcl::PointXYZ>);
   // pcl::PointXYZ tmp_p;
 
-  jsk_pcl_ros::PolygonArray polygon_array;
+  jsk_recognition_msgs::PolygonArray polygon_array;
   polygon_array.header = header;
   for (int i = 0; i < (int)( (x_max - x_min) / x_pitch ); i++) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -399,7 +399,7 @@ int main (int argc, char** argv) {
   pub_plane = nh.advertise<sensor_msgs::PointCloud2>("plane", 1);
   pub_voxel = nh.advertise<sensor_msgs::PointCloud2>("voxel", 1);
   pub_rot = nh.advertise<sensor_msgs::PointCloud2>("cloud_rotated", 1);
-  pub_polygon_array = nh.advertise<jsk_pcl_ros::PolygonArray>("polygon_array", 1, 0);
+  pub_polygon_array = nh.advertise<jsk_recognition_msgs::PolygonArray>("polygon_array", 1, 0);
   // pub_rot_plane = nh.advertise<sensor_msgs::PointCloud2>("plane_rotated", 1);
   pub_red = nh.advertise<sensor_msgs::PointCloud2>("cloud_reduced", 1);
   pub_marker = nh.advertise<visualization_msgs::Marker>("marker", 1, 0);
